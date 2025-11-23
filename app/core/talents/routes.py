@@ -16,7 +16,7 @@ talents = APIRouter(tags=["Talents"])
 @talents.post("/create")
 def create_talent(db:Annotated[Session, Depends(session)],
                         data: Annotated[TalentIn,Body()],
-                       # _: str=Depends(required_roles(UserRole.admin, UserRole.manager))
+                        _: str=Depends(required_roles(UserRole.admin, UserRole.manager))
                        ):
     talents = TalentService().create_talent(db=db, data=data)
     return talents

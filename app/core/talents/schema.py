@@ -1,4 +1,4 @@
-from pydantic import BaseModel,EmailStr, ConfigDict
+from pydantic import BaseModel,EmailStr, ConfigDict, field_validator
 from datetime import date
 from app.core.utils.enums import Role, ContractType
 
@@ -13,7 +13,22 @@ class TalentIn(BaseModel):
 
     model_config = ConfigDict(from_attributes=True, use_enum_values=True)
 
-#only a superuser should be able to update all these fields. 
+    @field_validator("firstname", "lastname", mode="before")
+    @classmethod
+    def capitalize_name(cls, value):
+        if not isinstance(value, str):
+            return value
+        return value.capitalize()
+    
+    @field_validator("email", mode="before")
+    @classmethod
+    def lower_email(cls, value):
+        if not isinstance(value, str):
+            return value
+        return value.lower()
+    
+
+
 
 class TalentUpdate(BaseModel):
     firstname: str | None = None
@@ -25,6 +40,24 @@ class TalentUpdate(BaseModel):
 
     model_config = ConfigDict(from_attributes=True, use_enum_values=True)
 
+    @field_validator("firstname", "lastname", mode="before")
+    @classmethod
+    def capitalize_name(cls, value):
+        if not isinstance(value, str):
+            return value
+        if value is None:
+            return value
+        return value.capitalize()
+    
+    @field_validator("email", mode="before")
+    @classmethod
+    def lower_email(cls, value):
+        if not isinstance(value, str):
+            return value
+        if value is None:
+            return value
+        return value.lower()
+
 class TalentOut(BaseModel):
     firstname: str
     lastname: str
@@ -34,6 +67,7 @@ class TalentOut(BaseModel):
     is_active: bool
     model_config = ConfigDict(from_attributes=True, use_enum_values=True)
 
+    
 class TalentRead(BaseModel):
     firstname: str
     lastname: str
