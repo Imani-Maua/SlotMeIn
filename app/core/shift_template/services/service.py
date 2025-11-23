@@ -49,7 +49,7 @@ def get_all_templates(db: Session,
                    shift_start: time | None = None,
                    shift_end: time | None = None):
     query = db.query(ShiftTemplate).join(ShiftTemplate.period)
-    template_exists(query)
     templates = search_filters(query=query,shift_name=shift_name,shift_end=shift_end,shift_start=shift_start)
+    template_exists(templates)
     return [TemplateOut.model_validate(template) for template in templates]
             

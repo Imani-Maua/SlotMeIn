@@ -46,7 +46,11 @@ def retrieve_templates(db: Annotated[Session, Depends(session)],
                     shift_name: str | None = None,
                     shift_start: time | None = None,
                     shift_end: time | None = None):
-    return get_all_templates(db=db, shift_name=shift_name, shift_start=shift_start, shift_end=shift_end)
+    
+    return get_all_templates(db=db, 
+                             shift_name=shift_name, 
+                             shift_start=shift_start, 
+                             shift_end=shift_end)
 
 
 

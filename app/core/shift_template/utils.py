@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Query
 from datetime import time
 from app.database.models import ShiftTemplate, ShiftPeriod
-from app.core.shift_template.services.validators import template_exists
+
 
 def search_filters(query: Query,
                    shift_name: str | None = None,
