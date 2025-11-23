@@ -1,4 +1,3 @@
-from fastapi import HTTPException, status
 from itertools import product
 from app.database.models import TalentConstraint
 from app.core.constraints.constraint_rules.schema import  ConstraintRuleIn, ConstraintRuleCreate

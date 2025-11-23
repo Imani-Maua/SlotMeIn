@@ -75,7 +75,7 @@ def evaluate_existing_rules(context: dict):
         
 
 
-def validate_constraint_rule_delete(rule: ConstraintRule):
+def rule_exists(rule: ConstraintRule):
      if not rule:
           raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                               detail="Constraint rule does not exist")

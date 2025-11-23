@@ -3,7 +3,7 @@ from app.core.utils.crud import CRUDBase
 from app.database.models import ConstraintRule, TalentConstraint
 from app.core.constraints.constraint_rules.schema import  ConstraintRuleCreate, ConstraintRuleUpdate, ConstraintRuleIn, ConstraintRuleOut
 from app.core.constraints.constraint_rules.utils import generate_rule_combinations
-from app.core.constraints.constraint_rules.services.validators import evaluate_existing_rules, validate_constraint_rules, context_finder, validate_constraint_rule_delete
+from app.core.constraints.constraint_rules.services.validators import evaluate_existing_rules, validate_constraint_rules, context_finder, rule_exists
 from app.core.constraints.constraint_rules.utils import rules_configuration
 
 
@@ -33,7 +33,15 @@ class ConstraintRuleService(CRUDBase[ConstraintRule, ConstraintRuleIn, Constrain
 
     def delete_rules(self, db: Session, rule_id: int):
         rule = db.query(ConstraintRule).filter(ConstraintRule.id == rule_id).first()
-        validate_constraint_rule_delete(rule)
+        rule_exists(rule)
         self.delete(db=db, id=rule_id)
+
+def get_rule(db: Session, id: int):
+    rule = db.query(ConstraintRule).filter(ConstraintRule.id == id)
+    rule_exists(rule)
+    return ConstraintRuleOut.model_validate(rule)
+
+
+
 
         
