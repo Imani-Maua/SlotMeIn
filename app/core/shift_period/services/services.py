@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
 from datetime import time
 from app.core.utils.crud import CRUDBase
-from app.core.shift_period.schema import ShiftPeriodIn,  ShiftPeriodUpdate, ShiftOut
+from app.core.shift_period.schema import ShiftPeriodIn,  ShiftPeriodUpdate, ShiftOut, OneShiftOut
 from app.database.models import ShiftPeriod
 from app.core.shift_period.services.validators import ShiftPeriodTimeFrame, validate_shift_period, validate_shift_period_update, validate_shift_period_delete, period_exists
 from app.core.shift_period.utils import search_filters
@@ -36,7 +36,7 @@ class ShiftPeriodService(CRUDBase[ShiftPeriod, ShiftPeriodIn, ShiftPeriodUpdate]
 def get_period(db: Session, id: int):
     period = db.query(ShiftPeriod).filter(ShiftPeriod.id == id).first()
     period_exists(period)
-    return ShiftOut.model_validate(period) 
+    return OneShiftOut.model_validate(period) 
 
 def get_all_periods(db: Session,
                     shift_name: str | None = None,
