@@ -1,8 +1,10 @@
 from sqlalchemy.orm import Session
+from datetime import time
 from app.core.utils.crud import CRUDBase
 from app.core.shift_period.schema import ShiftPeriodIn,  ShiftPeriodUpdate, ShiftOut
 from app.database.models import ShiftPeriod
-from app.core.shift_period.services.validators import ShiftPeriodTimeFrame, validate_shift_period, validate_shift_period_update, validate_shift_period_delete
+from app.core.shift_period.services.validators import ShiftPeriodTimeFrame, validate_shift_period, validate_shift_period_update, validate_shift_period_delete, period_exists
+from app.core.shift_period.utils import search_filters
 
 
 
@@ -30,4 +32,19 @@ class ShiftPeriodService(CRUDBase[ShiftPeriod, ShiftPeriodIn, ShiftPeriodUpdate]
         shift_period = db.query(ShiftPeriod).filter(ShiftPeriod.id == period_id).first()
         validate_shift_period_delete(shift_period)
         self.delete(db=db, id=period_id)
+
+def get_period(db: Session, id: int):
+    period = db.query(ShiftPeriod).filter(ShiftPeriod.id == id).first()
+    period_exists(period)
+    return ShiftOut.model_validate(period) 
+
+def get_all_periods(db: Session,
+                    shift_name: str | None = None,
+                   start_time: time | None = None,
+                   end_time: time | None = None):
+    query = db.query(ShiftPeriod)
+    templates = search_filters(query=query, shift_name=shift_name, start_time=start_time, end_time=end_time)
+    period_exists(query)
+    return [ShiftOut.model_validate(template) for template in templates]
+
         

@@ -80,6 +80,11 @@ class ShiftPeriodTimeFrame:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                                 detail=f"{shift_name} must be from {timeframe['start_time']} and {timeframe['end_time']}")
         
+
+def period_exists(period: ShiftPeriod):
+    if not period:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Shift template not found")
+        
         
         
 

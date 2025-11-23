@@ -11,6 +11,13 @@ class ShiftPeriodIn(BaseModel):
 
     model_config = ConfigDict(use_enum_values=True, from_attributes=True)
 
+    @field_validator("shift_name", mode="before")
+    @classmethod
+    def normalize_shift_name(cls, value):
+        if isinstance(value, str):
+            return value.lower()
+        return value
+
 
 class ShiftPeriodUpdate(BaseModel):
     start_time: time  | None = None
@@ -26,12 +33,7 @@ class ShiftOut(BaseModel):
 
     model_config = ConfigDict(use_enum_values=True, from_attributes=True)
 
-    @field_validator("shift_name", mode="before")
-    @classmethod
-    def normalize_shift_name(cls, value):
-        if isinstance(value, str):
-            return value.lower()
-        return value
+    
 
 
 
