@@ -55,6 +55,7 @@ def get_all_talents(db: Session,
         query = db.query(Talent)
         talent_exists(query)
         talents = search_filters(query=query, name=name, tal_role=tal_role, contract_type=contract_type, is_active=is_active)
+        talent_exists(talents)
         return [TalentOut.model_validate(talent) for talent in talents]
         
     
