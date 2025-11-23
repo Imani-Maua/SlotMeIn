@@ -1,6 +1,6 @@
 from datetime import date, time, datetime
 from typing import List, Optional
-from sqlalchemy import ForeignKey, String, Integer, Boolean, Numeric, Date, Time
+from sqlalchemy import ForeignKey, String, Integer, Boolean, Numeric, Date, Time, DateTime, func
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
@@ -21,9 +21,9 @@ class Talent(Base):
     start_date: Mapped[Optional[date]] = mapped_column(Date)
     end_date: Mapped[Optional[date]] = mapped_column(Date)
 
-    requests: Mapped[List["Request"]] = relationship(back_populates="talent")
-    constraints: Mapped[List["TalentConstraint"]] = relationship(back_populates="talent")
-    scheduled_shifts: Mapped[List["ScheduledShift"]] = relationship(back_populates="talent")
+    requests: Mapped[List["Request"]] = relationship(back_populates="talent", cascade="all, delete-orphan")
+    constraints: Mapped[List["TalentConstraint"]] = relationship(back_populates="talent", cascade="all, delete-orphan")
+    scheduled_shifts: Mapped[List["ScheduledShift"]] = relationship(back_populates="talent", cascade="all, delete-orphan")
 
 
 
@@ -36,7 +36,7 @@ class TalentConstraint(Base):
     is_active: Mapped[bool] = mapped_column(Boolean, default=False)
 
     talent: Mapped[Optional["Talent"]] = relationship(back_populates="constraints")
-    rules: Mapped[List["ConstraintRule"]] = relationship(back_populates="constraint")
+    rules: Mapped[List["ConstraintRule"]] = relationship(back_populates="constraint", cascade="all, delete-orphan")
 
 
 
@@ -62,7 +62,7 @@ class ShiftPeriod(Base):
 
 
 
-    templates: Mapped[List["ShiftTemplate"]] = relationship(back_populates="period")
+    templates: Mapped[List["ShiftTemplate"]] = relationship(back_populates="period", cascade="all, delete-orphan")
 
 
 class ShiftTemplate(Base):
@@ -103,20 +103,18 @@ class Schedule(Base):
     week_end: Mapped[date] = mapped_column(Date)
     status: Mapped[str] = mapped_column(String, default="draft")
 
-    scheduled_shifts: Mapped[List["ScheduledShift"]] = relationship(back_populates="schedule")
+    scheduled_shifts: Mapped[List["ScheduledShift"]] = relationship(back_populates="schedule", cascade="all, delete-orphan")
 
 class Request(Base):
     __tablename__ = "requests"
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
     talent_id: Mapped[Optional[int]] = mapped_column(ForeignKey("talents.id", ondelete="CASCADE"))
-    req_date: Mapped[date]
-    status: Mapped[Optional[str]] = mapped_column(String(50))
-    created_at: Mapped[datetime] = mapped_column(default=datetime)
-    updated_at: Mapped[datetime] = mapped_column(default=datetime)
+    req_date: Mapped[date] = mapped_column(Date)
+    status: Mapped[Optional[str]] = mapped_column(String(50), default="pending")
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), onupdate= func.now(), nullable=False)
     holiday_type: Mapped[str] = mapped_column(String(10), default="paid")
-    leave_days: Mapped[int] = mapped_column(Integer, default=21)
-    paid_taken: Mapped[int] = mapped_column(Integer, default=0)
 
 
     talent: Mapped[Optional["Talent"]] = relationship(back_populates="requests")

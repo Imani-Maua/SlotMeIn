@@ -1,35 +1,20 @@
-from pydantic import BaseModel, ConfigDict
-from enum import Enum
+from pydantic import BaseModel, ConfigDict, field_validator
 from datetime import time
+from app.core.utils.enums import TemplateRole, Shifts
 
-class Role(Enum):
-    MANAGER = "manager" 
-    LEADER = "leader"
-    BARTENDER = "bartender"
-    SERVER = "server"
-    RUNNER = "runner"
-    HOSTESS = "hostess"
-    JOB_FORCE = "job force"
 
-    
-class Shifts(Enum):
-    AM = "am"
-    PM = "pm"
-    LOUNGE = "lounge"
 
 class TemplateIn(BaseModel):
     period_id: int
     shift_start: time
     shift_end: time
-    role: Role
+    role: TemplateRole
 
     model_config = ConfigDict(from_attributes=True, use_enum_values=True)
 
 class TemplateUpdate(BaseModel):
-    period_id: int
     shift_start: time | None = None
     shift_end: time | None = None
-    role: Role | None = None
 
     model_config = ConfigDict(from_attributes=True, use_enum_values=True)
 
@@ -40,8 +25,17 @@ class PeriodOut(BaseModel):
 
     model_config = ConfigDict(from_attributes=True, use_enum_values=True)
 
+    @field_validator("shift_name", mode="before")
+    @classmethod
+
+    def normalize_shift_name(cls, value):
+        if isinstance(value, str):
+            return value.lower()
+        return value
+
 class TemplateOut(BaseModel):
     period: PeriodOut
-    template: TemplateIn
+    shift_start: time 
+    shift_end: time 
 
-    model_config = ConfigDict(from_attributes=True)
+    model_config = ConfigDict(from_attributes=True, use_enum_values=True)

@@ -1,18 +1,13 @@
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
-from abc import ABC, abstractmethod
 from sqlalchemy import and_
-from app.core.constraints.constraint_rules.schema import ConstraintType, ConstraintRuleIn
+from app.core.constraints.constraint_rules.schema import ConstraintRuleIn
 from app.database.models import TalentConstraint, ConstraintRule
+from app.core.utils.enums import ConstraintType
 
-class AbstractValidator(ABC):
-    @abstractmethod
-    def pass_validation(context):
-        raise NotImplementedError
 
-class Context:
-    @staticmethod
-    def contextFinder(*, db: Session, data: ConstraintRuleIn, rules_config: dict, constraint:TalentConstraint ) -> dict:
+
+def context_finder(*, db: Session, data: ConstraintRuleIn, rules_config: dict, constraint:TalentConstraint ) -> dict:
 
         context = {
             "db": db,
@@ -24,16 +19,21 @@ class Context:
         return context
                          
  
-class ConstraintRuleValidator(AbstractValidator):
 
-    @staticmethod
-    def pass_validation(context: dict):
+def validate_constraint_rules(context: dict):
 
         data: ConstraintRuleIn = context["data"]
         rules_config: dict = context["rules_config"]
+        constraint: TalentConstraint = context["constraint"]
         
         has_day = bool(data.day)
         has_shifts = bool(data.shifts)
+        if not constraint:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Constraint does not exist")
+        
+        if constraint.is_active:
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, 
+                                detail="Constraint already exists. Click here to update")
 
         if not has_day and not has_shifts:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, 
@@ -51,10 +51,7 @@ class ConstraintRuleValidator(AbstractValidator):
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                                 detail="Combination constraints require both day and shifts")
     
-class ExistingRulesValidator(AbstractValidator):
-
-    @staticmethod
-    def pass_validation(context: dict):
+def evaluate_existing_rules(context: dict):
 
         db: Session = context["db"]
         data: ConstraintRuleIn = context["data"]
@@ -77,5 +74,8 @@ class ExistingRulesValidator(AbstractValidator):
             raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Constraint rule exists")
         
 
-validators = [ConstraintRuleValidator, ExistingRulesValidator]
 
+def rule_exists(rule: ConstraintRule):
+     if not rule:
+          raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                              detail="Constraint rule does not exist")

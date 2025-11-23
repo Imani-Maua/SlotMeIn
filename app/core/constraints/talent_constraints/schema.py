@@ -1,30 +1,25 @@
-from pydantic import BaseModel
-from enum import Enum
+from pydantic import BaseModel, ConfigDict
+from app.core.utils.enums import ConstraintType, Days, Shifts
 
 
-class Days(Enum):
-    MONDAY = "Monday"
-    TUESDAY = "Tuesday"
-    WEDNESDAY = "Wednesday"
-    THURSDAY = "Thursday"
-    FRIDAY = "Friday"
-    SATURDAY = "Saturday"
-    SUNDAY = "Sunday"
+class Talent(BaseModel):
+    id: int
+    firstname: str
+    lastname: str
+    
+    model_config = ConfigDict(from_attributes=True)
 
-class Shifts(Enum):
-    AM = "am"
-    PM = "pm"
-    LOUNGE = "lounge"
+class Rules(BaseModel):
+    day: str
+    shifts: str
 
-class ConstraintType(Enum):
-    AVAILABILITY = "availability"
-    SHIFT_RESTRICTION = "shift restriction"
-    COMBINATION = "combination"
+    model_config = ConfigDict(from_attributes=True, exclude_none=True)
 
-class ConstraintCreate(BaseModel):
+class ConstraintIn(BaseModel):
     talent_id: int 
     type: ConstraintType
 
+    model_config = ConfigDict(use_enum_values=True, from_attributes=True)
 
 class ConstraintUpdate(BaseModel):
     is_active: bool
@@ -32,11 +27,11 @@ class ConstraintUpdate(BaseModel):
     shifts: Shifts | None = None
 
 class ConstraintOut(BaseModel):
-    talent_id: int
+    talent: Talent
     type: ConstraintType
     is_active: bool
-    day: list[Days] | None = None 
-    shift: list[Shifts] | None = None
+    rules: list[Rules]
 
+    model_config = ConfigDict(use_enum_values=True, from_attributes=True, exclude_none=True)
 
 

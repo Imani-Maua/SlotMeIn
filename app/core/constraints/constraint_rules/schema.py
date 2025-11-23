@@ -1,25 +1,6 @@
 from pydantic import BaseModel, ConfigDict
-from enum import Enum
+from app.core.utils.enums import Days, Shifts
 
-
-class Days(Enum):
-    MONDAY = "Monday"
-    TUESDAY = "Tuesday"
-    WEDNESDAY = "Wednesday"
-    THURSDAY = "Thursday"
-    FRIDAY = "Friday"
-    SATURDAY = "Saturday"
-    SUNDAY = "Sunday"
-
-class Shifts(Enum):
-    AM = "am"
-    PM = "pm"
-    LOUNGE = "lounge"
-
-class ConstraintType(Enum):
-    AVAILABILITY = "availability"
-    SHIFT_RESTRICTION = "shift restriction"
-    COMBINATION = "combination"
 
 class ConstraintRuleIn(BaseModel):
     constraint_id: int
