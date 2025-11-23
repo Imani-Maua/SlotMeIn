@@ -2,6 +2,18 @@ from pydantic import BaseModel, ConfigDict
 from app.core.utils.enums import ConstraintType, Days, Shifts
 
 
+class Talent(BaseModel):
+    id: int
+    firstname: str
+    lastname: str
+    
+    model_config = ConfigDict(from_attributes=True)
+
+class Rules(BaseModel):
+    day: str
+    shifts: str
+
+    model_config = ConfigDict(from_attributes=True, exclude_none=True)
 
 class ConstraintIn(BaseModel):
     talent_id: int 
@@ -15,12 +27,11 @@ class ConstraintUpdate(BaseModel):
     shifts: Shifts | None = None
 
 class ConstraintOut(BaseModel):
-    talent_id: int
+    talent: Talent
     type: ConstraintType
     is_active: bool
-    day: list[Days] | None = None 
-    shift: list[Shifts] | None = None
+    rules: list[Rules]
 
-    model_config = ConfigDict(use_enum_values=True, from_attributes=True)
+    model_config = ConfigDict(use_enum_values=True, from_attributes=True, exclude_none=True)
 
 

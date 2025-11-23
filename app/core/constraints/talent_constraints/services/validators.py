@@ -13,7 +13,7 @@ def validate_constraint_input(talent: Talent, constraint: TalentConstraint):
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Constraint already exists")
 
 
-def validate_constraint_delete(constraint: TalentConstraint):
+def constraint_exists(constraint: TalentConstraint):
         if not constraint: 
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Constraint does not exist")
        
