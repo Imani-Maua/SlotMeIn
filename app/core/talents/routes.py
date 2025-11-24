@@ -4,8 +4,7 @@ from typing import Annotated, Union, List
 from app.core.talents.services.service import TalentService, get_talent, get_all_talents
 from app.core.talents.schema import TalentIn, TalentUpdate, TalentRead
 from app.database.session import session
-from app.auth.services.security import required_roles
-from app.auth.schema import UserRole
+
 from app.database.models import Talent
 
 
@@ -16,7 +15,7 @@ talents = APIRouter(tags=["Talents"])
 @talents.post("/create")
 def create_talent(db:Annotated[Session, Depends(session)],
                         data: Annotated[TalentIn,Body()],
-                        _: str=Depends(required_roles(UserRole.admin, UserRole.manager))
+                     
                        ):
     talents = TalentService().create_talent(db=db, data=data)
     return talents
@@ -25,7 +24,7 @@ def create_talent(db:Annotated[Session, Depends(session)],
 def update_talent(db: Annotated[Session, Depends(session)],
                         talent_id: int,
                         data: Annotated[TalentUpdate, Body()],
-                        _:str= Depends(required_roles(UserRole.admin, UserRole.manager))
+                     
                         ):
     talent = TalentService().update_talent(db, talent_id, data)
     return talent
