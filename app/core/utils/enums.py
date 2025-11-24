@@ -58,3 +58,13 @@ class ConstraintType(Enum):
     AVAILABILITY = "availability"
     SHIFT_RESTRICTION = "shift restriction"
     COMBINATION = "combination"
+
+class UserRole(str, Enum):
+    superuser = "superuser"
+    admin = "admin"
+    manager = "manager"
+    user = "user"
+
+class TokenType(Enum):
+    invite = "invite"
+    access = "access"
