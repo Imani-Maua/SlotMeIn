@@ -2,7 +2,6 @@ from pydantic import BaseModel, EmailStr, field_validator
 from app.core.utils.enums import UserRole
 
 
-
 class CreateUser(BaseModel):
     firstname:str
     lastname: str

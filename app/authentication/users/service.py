@@ -6,9 +6,11 @@ from datetime import timedelta
 from jose import JWTError
 from app.authentication.users.schema import CreateUser, UserOut, InviteTarget, NewPassword
 from app.database.auth import User
-from app.authentication.users.utils import lookup_user, generate_temporary_password, hash_password, invite_message, authenticate_user, user_is_active
+from app.authentication.utils.auth_utils import lookup_user, authenticate_user, activate_user_account
+from app.authentication.utils.password_utils import generate_temporary_password, hash_password
+from app.authentication.utils.email_utils import invite_message
 from app.authentication.tokens.schema import Payload, TokenOut
-from app.authentication.tokens.service import create_token, store_token, verify_token_type, verify_token, activate_user_account, mark_token_used
+from app.authentication.tokens.service import TokenService 
 from app.core.utils.enums import TokenType
 
 
@@ -42,24 +44,24 @@ class UserService():
         user: User = lookup_user(db=db, user_id=id.user_id)
         payload = Payload(sub=user.username, id=user.id, email=user.email, role=user.user_role, type=TokenType.invite)
         token_expires = timedelta(hours=INVITE_EXPIRY_HOURS)
-        invite_token = create_token(data=payload, expiry = token_expires)
-        store_token(db=db, data=payload, jwt=invite_token)
+        invite_token = TokenService.create_token(data=payload, expiry = token_expires)
+        TokenService.store_token(db=db, data=payload, jwt=invite_token)
         invite = invite_message(invite_token=invite_token, user=user)
         return invite
     
     @staticmethod
     def set_new_password(db: Session, data: NewPassword):
-        decoded = verify_token_type(data.token, TokenType.invite.value)
+        decoded = TokenService.verify_token_type(data.token, TokenType.invite.value)
         payload = Payload(**decoded)
 
-        verify_token(db=db, token=data.token, type=payload.type)
+        TokenService.verify_token(db=db, token=data.token, type=payload.type)
         user_exists = lookup_user(db=db, user_id=payload.id)
         if not user_exists:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
                                 detail="Invalid account")
         hash_new_password = hash_password(data.new_password)
         activate_user_account(db=db, user_id=payload.id, hash=hash_new_password)
-        mark_token_used(db=db, jti=payload.jti, type=payload.type)
+        TokenService.mark_token_used(db=db, jti=payload.jti, type=payload.type)
 
         return {"message": "Account activated successfully"}
     
@@ -71,8 +73,8 @@ class UserService():
         
         payload = Payload(sub=user.username, id=user.id, email=user.email, role=user.user_role, type=TokenType.access)
         token_expires = timedelta(days=ACCESS_EXPIRY_DAYS)
-        access_token = create_token(data=payload, expiry=token_expires)
-        store_token(db=db, data=payload, jwt=access_token)
+        access_token = TokenService.create_token(data=payload, expiry=token_expires)
+        TokenService.store_token(db=db, data=payload, jwt=access_token)
         return TokenOut(access_token=access_token,token_type="bearer",role=user.user_role)
     
     
