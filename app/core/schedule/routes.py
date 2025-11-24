@@ -5,8 +5,7 @@ from typing import Annotated
 import asyncpg
 from app.database.database import get_db
 from app.database.session import session
-from app.auth.services.security import required_roles
-from app.auth.schema import UserRole
+
 from app.core.schedule.schema import inputDate
 
 from app.core.schedule.services.service import ScheduleService
@@ -18,16 +17,15 @@ schedule = APIRouter(tags=["Schedule"])
 
 @schedule.post("/generate")
 async def generate_schedule(db: Annotated[asyncpg.Connection, Depends(get_db)],
-                            start_date: Annotated[inputDate, Body()], 
-                             _: str = Depends(required_roles(UserRole.superuser, UserRole.admin))):
+                            start_date: Annotated[inputDate, Body()]
+                             ):
     schedule = await ScheduleService.generate_schedule(start_date)
     return schedule
 
 
 @schedule.get("/view/{week_start}")
 async def view_schedule(db: Annotated[Session, Depends(session)],
-                        week_start: date,
-                        _: str = Depends(required_roles(UserRole.admin, UserRole.manager))):
+                        week_start: date):
     result = ScheduleService(db)
     schedule = await result.get_schedule_by_week_start(week_start)
     return schedule
