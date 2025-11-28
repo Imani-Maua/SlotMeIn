@@ -69,7 +69,8 @@ class StaffingService:
                     "count": 0,
                     "shift_name": period.shift_name,
                     "start_time": template.shift_start,
-                    "end_time": template.shift_end
+                    "end_time": template.shift_end,
+                    "template_id": template.id
                 }
 
             period_roles[period.id] = roles
@@ -97,7 +98,8 @@ class StaffingService:
                 "count": count,
                 "shift_name": role_data["shift_name"],
                 "start_time": role_data["start_time"],
-                "end_time": role_data["end_time"]
+                "end_time": role_data["end_time"],
+                "template_id": role_data["template_id"]
             }
 
             staffed_periods[period_id] = staffed_roles

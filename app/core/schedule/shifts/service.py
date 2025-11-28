@@ -3,9 +3,8 @@ from datetime import timedelta, date, datetime
 from collections import defaultdict
 from sqlalchemy.orm import Session
 from app.core.schedule.staffing.service import StaffingService
-from app.database.models import ShiftPeriod
-from app.core.schedule.shifts.utils import start_date_within_allowed_window
 from app.core.schedule.shifts.schema import shiftSpecification
+from app.core.schedule.shifts.utils import flatten_shift_structure
 
 
 
@@ -48,13 +47,16 @@ class ShiftSlotBuilder:
                 for role, role_data in staffed_roles.items():
                     role_data: dict
                     shift_spec[shift_date][period_id][role] = shiftSpecification(
+                        template_id=role_data["template_id"],
                         start_time=datetime.combine(shift_date, role_data["start_time"]),
                         end_time=datetime.combine(shift_date, role_data["end_time"]),
                         shift_name= role_data["shift_name"],
                         role_name= role,
                         role_count= role_data["count"]
                     )
-        return shift_spec
+                    flattened = flatten_shift_structure(shift_spec)
+        
+        return flattened
 
         
 
