@@ -1,0 +1,5 @@
+{
+    "low": ["Monday", "Tuesday"],
+    "med": ["Wednesday", "Thursday"],
+    "high": ["Friday", "Saturday", "Sunday"]
+}
