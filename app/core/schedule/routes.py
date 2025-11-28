@@ -1,14 +1,24 @@
 from fastapi import APIRouter, Body, Depends
 from sqlalchemy.orm import Session
 from datetime import date
-from typing import Annotated
-import asyncpg
-from app.database.database import get_db
-from app.database.session import session
 
+from typing import Annotated
+
+from app.database.session import session
 from app.core.schedule.schema import inputDate
 
-from app.core.schedule.services.service import ScheduleService
+from app.core.schedule.shifts.service import ShiftSlotBuilder
+from app.core.schedule.talents.repo import TalentRepository
+from app.core.schedule.talents.preprocessor import TalentPreprocessor
+from app.core.schedule.talents.assembler import TalentAssembler
+from app.core.schedule.talents.service import TalentService
+from app.core.schedule.allocator.allocator.engine.generators import TalentByRole
+
+from app.core.schedule.allocator.allocator.service import ScheduleBuilder, UnderstaffedShifts
+
+
+from app.core.schedule.allocator.entities import weekRange
+from datetime import timedelta
 
 
 
@@ -16,20 +26,69 @@ schedule = APIRouter(tags=["Schedule"])
 
 
 @schedule.post("/generate")
-async def generate_schedule(db: Annotated[asyncpg.Connection, Depends(get_db)],
+async def generate_schedule(db: Annotated[Session, Depends(session)],
                             start_date: Annotated[inputDate, Body()]
                              ):
-    schedule = await ScheduleService.generate_schedule(start_date)
-    return schedule
+    #1. Get all the dates to schedule
+
+    week_provider = weekRange(start_date=start_date.start_date)
+
+    #2. Build the shift slots
+    slots_builder = ShiftSlotBuilder(db=db, start_date=week_provider.get_week()[0])
+    assignable_shifts = slots_builder.build_week_slots()
+
+    #3. Build talent availability
+    repo = TalentRepository(session=db)
+    preprocessor = TalentPreprocessor(week_provider=week_provider)
+    assembler = TalentAssembler(week_provider=week_provider)
+    talent_service = TalentService(repo=repo, preprocessor=preprocessor, assembler=assembler)
+    talent_objects = talent_service.load_talent_objects()
+
+    #4. Group talents by role
+
+    talents_by_role = TalentByRole.group_talents(talents=talent_objects)
+
+    #5. Run the scheduler
+
+    scheduler = ScheduleBuilder(availability=talent_objects, 
+                                assignable_shifts=assignable_shifts, 
+                                talents_to_assign=talents_by_role)
+    plan = scheduler.generate_schedule()
+
+    understaffed = UnderstaffedShifts(conn=db, assignable_shifts=assignable_shifts, assigned_shifts=plan)
+    understaffed_shifts = understaffed.get_all()
 
 
-@schedule.get("/view/{week_start}")
-async def view_schedule(db: Annotated[Session, Depends(session)],
-                        week_start: date):
-    result = ScheduleService(db)
-    schedule = await result.get_schedule_by_week_start(week_start)
-    return schedule
-    #set this such that you can only give a date that is on Sunday/Monday depending on when week_start is
+    return {
+        "assignments": [
+            {
+                "talent_id": a.talent_id,
+                "shift_id": a.shift_id,
+                "role": a.shift.role_name,
+                "shift_name": a.shift.shift_name,
+                "start": a.shift.start_time,
+                "end": a.shift.end_time
+            } for a in plan
+        ],
+        "understaffed": [
+            {
+                "shift_id": u.shift_id,
+                "shift_name": u.shift_name,
+                "role": u.role_name,
+                "required": u.required,
+                "assigned": u.assigned,
+                "missing": u.missing,
+                "start": u.shift_start,
+                "end": u.shift_end
+            } for u in understaffed_shifts
+        ]
+    }
+    
+
+    
+
+
+
 
 
 
