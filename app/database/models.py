@@ -118,3 +118,17 @@ class Request(Base):
 
 
     talent: Mapped[Optional["Talent"]] = relationship(back_populates="requests")
+
+class TalentData(Base):
+    __tablename__ = "talent_data"
+    
+    
+    pk: Mapped[int] = mapped_column(primary_key=True)
+    talent_id: Mapped[int] = mapped_column(Integer)
+    talent_name: Mapped[str] = mapped_column(String(50))
+    tal_role: Mapped[str] = mapped_column(String(50))
+    hours:Mapped[int] = mapped_column(Integer)
+    constraint_type: Mapped[str] = mapped_column(String(50))
+    constraint_status: Mapped[str] = mapped_column(String(50))
+    available_day: Mapped[str] = mapped_column(String(50))
+    available_shifts: Mapped[str] = mapped_column(String(50))

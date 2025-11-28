@@ -2,7 +2,7 @@ import asyncpg
 from app.config.config import Settings
 import pandas as pd
 from abc import ABC, abstractmethod
-from app.core.schedule.services.entities import dbCredentials
+from app.core.schedule.allocator.entities import dbCredentials
 
 
 settings = Settings()
