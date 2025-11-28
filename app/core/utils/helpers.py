@@ -1,5 +1,5 @@
 from datetime import datetime, time, timedelta
-from app.core.schedule.services.entities import weekRange
+from app.core.schedule.allocator.entities import weekRange
 from app.core.schedule.schema import inputDate
 from pathlib import Path
 import json
@@ -17,7 +17,7 @@ def create_datetime(date, time):
     return datetime.combine(date, time)
 
 def fetch_all_shifts():
-    base_path = Path(__file__).parent.parent.parent.parent
+    base_path = Path(__file__).parent.parent.parent
     json_path = base_path/"config"/"shifts.json"
     with open(json_path) as p:
         shifts = json.load(p)['shifts']
