@@ -1,46 +1,78 @@
 # SlotMeIn
 
-SlotMeIn is a shift scheduling MVP designed to allocate employees (called **talents**) to shifts efficiently while respecting their availability and constraints.  
+**SlotMeIn** is a FastAPI-based shift scheduling REST API designed to intelligently allocate employees (called **talents**) to shifts while respecting their availability, constraints, and labor regulations.
 
-The system separates responsibilities clearly, applies abstraction for flexibility, and uses adapters for transforming data between the database and the scheduler.  
+The system provides a complete backend solution with authentication, database management, and a sophisticated scheduling engine that ensures fair and compliant shift assignments.
 
-> ⚠️ **Note:** This iteration of SlotMeIn is an MVP therefore not yet in production.
+> ⚠️ **Note:** This is an MVP and not yet in production.
+
 ---
 
 ## ✨ Current Features  
 
-- **Data integration**: Fetch talent and shift data from a PostgreSQL database and transform it into Pandas DataFrames for easy     manipulation.  
-- **Role & availability matching**: Filter talents based on role requirements, availability windows, and allowed shift types.  
-- **Constraint validation**: Apply rule-based validators to ensure compliance with scheduling rules, including:  
-  - Maximum weekly working hours  
-  - No more than one shift per day  
-  - Minimum 11 hours rest between shifts  
-  - Maximum six consecutive workdays  
-- **Quota-aware allocation**: Assign up to the required number of talents per role/shift (e.g., 5 servers for one dinner shift).  
-- **Scoring & Prioritization**: 
-  - Consider constrained talents first, then unconstrained, ensuring critical assignments are filled.  
-  - Uses ```computeScore``` to evaluate suitability of talents for a shift
-- **Fair Distribution**: Uses ```roundRobinPicker``` to cycle through equally scored candidates fairly across shifts.
-- **Output**: Produces a list of ```assignment``` objects, representing which talent is assigned to which shift. 
+### 🔐 Authentication & User Management
+- **JWT-based authentication**: Secure token-based authentication system
+- **User management**: User registration and authentication endpoints
+
+### 📊 RESTful API Endpoints
+- **Talents Management** (`/talents`): CRUD operations for employee records
+- **Shift Templates** (`/shift_templates`): Define shift patterns and roles
+- **Shift Periods** (`/shift_period`): Manage shift time periods
+- **Talent Constraints** (`/talent_constraints`): Configure employee availability constraints
+- **Constraint Rules** (`/constraint_rules`): Define specific constraint rules per talent
+- **Schedule Generation** (`/schedule/generate`): Generate optimized weekly schedules
+
+### 🧠 Intelligent Scheduling Engine
+- **Role & availability matching**: Filters talents based on role requirements, availability windows, and allowed shift types
+- **Constraint validation**: Enforces labor regulations and business rules:
+  - **Maximum weekly hours**: Respects individual talent weekly hour limits
+  - **Daily assignment limit**: No more than one shift per day per talent
+  - **Rest period enforcement**: Minimum 11 hours rest between consecutive shifts
+  - **Consecutive workday limit**: Maximum six consecutive workdays
+- **Smart prioritization**: 
+  - Prioritizes constrained talents first, then unconstrained talents
+  - Uses `computeScore` to evaluate talent suitability for each shift
+  - Implements `roundRobinPicker` for fair distribution among equally-scored candidates
+- **Quota-aware allocation**: Assigns the exact number of required talents per role/shift
+- **Understaffing detection**: Identifies and reports shifts that couldn't be fully staffed
+
+### 💾 Database Architecture
+- **SQLAlchemy ORM**: Type-safe database models with relationships
+- **PostgreSQL backend**: Robust relational database with connection pooling
+- **Comprehensive data models**:
+  - `Talent`: Employee records with roles and contract details
+  - `TalentConstraint`: Availability constraints per talent
+  - `ConstraintRule`: Specific rules defining when talents can work
+  - `ShiftPeriod`: Shift time definitions
+  - `ShiftTemplate`: Role-specific shift templates
+  - `ScheduledShift`: Generated shift assignments
+  - `Schedule`: Weekly schedule containers
+  - `Request`: Time-off and preference requests
 
 ## 🚀 Future Enhancements  
 
-- Employee request handling (preferences, time-off requests).  
-- More advanced optimization for fairness and workload balance.  
-- Integration of AI/ML models to predict staffing needs based on external factors (e.g., demand forecasts, seasonality).  
+- **Request handling**: Process and integrate time-off requests and preferences into scheduling
+- **Advanced optimization**: Implement fairness metrics and workload balancing algorithms
+- **Predictive staffing**: AI/ML models to forecast staffing needs based on demand patterns and seasonality
+- **Shift swapping**: Allow talents to trade shifts with approval workflows
 
 ---
 
 ## 🛠️ Tech Stack
 
-- **Backend Language**: Python 3.11+
-- **Database**: PostgreSQL
+- **Backend Framework**: FastAPI 0.116+
+- **Language**: Python 3.11+
+- **Database**: PostgreSQL with asyncpg
+- **ORM**: SQLAlchemy 2.0+
+- **Authentication**: JWT (python-jose)
+- **Password Hashing**: bcrypt via passlib
 - **Data Processing**: Pandas
+- **API Documentation**: Auto-generated OpenAPI (Swagger UI)
 - **Version Control**: Git
 
 ## Setup
 
-Follow these instructions to get SlotMeIn running locally.
+Follow these instructions to get Shiftly running locally.
 
 ### 1. Clone the repository
 
@@ -49,7 +81,7 @@ git clone https://github.com/your-username/shiftly.git
 cd shiftly
 ```
 
-### 2. Create a virtual environment (optional but recommended)
+### 2. Create a virtual environment (recommended)
 
 ```bash
 python3 -m venv venv
@@ -60,37 +92,63 @@ venv\Scripts\activate     # Windows
 ### 3. Install dependencies
 
 ```bash
-pip install -r requirements.txt
+pip install -r app/requirements.txt
 ```
 
-### 4. Set up the environment variables
+### 4. Set up environment variables
 
-Create a .env file in the root of the project
+Create a `.env` file in the root of the project:
 
 ```bash
+# Database Configuration
 DB_HOST=your_database_host
 DB_NAME=your_database_name
 DB_USER=your_database_user
 DB_PASSWORD=your_database_password
+
+# JWT Authentication
+SECRET_KEY=your_secret_key_here
+ALGORITHM=HS256
+ACCESS_TOKEN_EXPIRE_MINUTES=30
 ```
 
 ### 5. Set up the database
 
-- Connect to your postgreSQL database
-- Run the schema file to create tables and views needed for slotmein
+Connect to your PostgreSQL database and create the necessary tables using SQLAlchemy:
 
 ```bash
-psql -U DB_USER -d DB_NAME -f schema.sql
+# If you have migration scripts
+alembic upgrade head
+
+# Or create tables programmatically
+python -c "from app.database.models import Base; from app.database.session import engine; Base.metadata.create_all(bind=engine)"
 ```
 
-- Seed the database with imaginary data
+### 6. Run the FastAPI server
 
 ```bash
-psql -U DB_USER -d DB_NAME -f seed.sql
+uvicorn main:app --reload
 ```
 
-### 6. Run the demo
+The API will be available at `http://localhost:8000`
 
-```bash
-python3 -m app.demo.demo
+### 7. Access the API documentation
+
+FastAPI provides interactive API documentation:
+
+- **Swagger UI**: `http://localhost:8000/docs`
+- **ReDoc**: `http://localhost:8000/redoc`
+
+### 8. Generate a schedule
+
+Use the `/schedule/generate` endpoint with a POST request containing a start date:
+
+```json
+{
+  "start_date": "2025-11-25"
+}
 ```
+
+The API will return:
+- **assignments**: List of talent-to-shift assignments with details
+- **understaffed**: List of shifts that couldn't be fully staffed
