@@ -1,17 +1,20 @@
-from datetime import datetime
 from app.core.schedule.shifts.schema import shiftSpecification
+from app.core.schedule.talents.schema import talentAvailability
 from app.core.schedule.allocator.entities import assignment, underStaffedShifts
 from app.core.schedule.allocator.allocator.engine.generators import TalentGenerator
-from app.core.schedule.allocator.allocator.engine.validators import validators, context
+from app.core.schedule.allocator.allocator.engine.validators import maxHoursValidator, consecutiveValidator, restValidator, dailyAssignmentValidator, context, abstractValidator
 from app.core.schedule.allocator.allocator.engine.scheduler_scoring import computeScore, roundRobinPicker
 
 
 
 class TalentAvailabilityService:
-    def __init__(self, talent_availability, assignable_shifts, talents_to_assign):
+    def __init__(self, talent_availability: dict[int, talentAvailability], 
+                 assignable_shifts: dict[int, shiftSpecification], 
+                 talents_to_assign):
+        
         self.availability = talent_availability
-        self.assignable_shifts = assignable_shifts  # dict[str, shiftSpecification]
-        self.talents_to_assign = talents_to_assign  # dict[str, list[(id, window, shifts)]]
+        self.assignable_shifts = assignable_shifts  
+        self.talents_to_assign = talents_to_assign 
 
     def define_talent_availability_window(self):
         """
@@ -57,7 +60,9 @@ class TalentAvailabilityService:
 
 
 class ScheduleBuilder:
-    def __init__(self, availability, assignable_shifts, talents_to_assign):
+    def __init__(self, availability: dict[int, talentAvailability], 
+                 assignable_shifts: dict[int, shiftSpecification],
+                talents_to_assign):
         self.availability = availability     # dict[int, talentAvailability]
         self.assignable_shifts = assignable_shifts  # dict[str, shiftSpecification]
         self.talents_to_assign = talents_to_assign
@@ -69,6 +74,8 @@ class ScheduleBuilder:
             self.availability, self.assignable_shifts, self.talents_to_assign
         )
         eligibility = availability_service.generate_eligible_talents()
+        
+        validators = [maxHoursValidator(), consecutiveValidator(), restValidator(), dailyAssignmentValidator()]
 
         for shift_instance_id, shift in self.assignable_shifts.items():
             candidates = eligibility.get(shift_instance_id, [])
@@ -95,7 +102,8 @@ class ScheduleBuilder:
                     continue
 
                 # Validators
-                if all(v.can_assign_shift(ctx) for v in validators):
+                if all(validator.can_assign_shift(ctx) for validator in validators):
+                    
                     if best_fit == talent_id:
 
                         plan.append(
@@ -107,9 +115,9 @@ class ScheduleBuilder:
                         )
 
                         # Mark assignment
-                        for v in validators:
-                            if hasattr(v, "mark_assigned"):
-                                v.mark_assigned(ctx)
+                        for validator in validators:
+                            if hasattr(validator, "mark_assigned"):
+                                validator.mark_assigned(ctx)
 
                         num_assigned += 1
 

@@ -168,7 +168,7 @@ class dailyAssignmentValidator(abstractValidator):
     
 
 
-validators = [maxHoursValidator(), consecutiveValidator(), restValidator(), dailyAssignmentValidator()]
+
 
 
 

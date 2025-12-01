@@ -5,9 +5,9 @@ from app.database.models import Talent
 
 def set_contract_hours(contract_type: str):
     contract_hours = {
-        ContractType.FULL_TIME.value: 40,
-        ContractType.PART_TIME.value: 30,
-        ContractType.STUDENT.value: 24
+        ContractType.FULL_TIME.value: 44,
+        ContractType.PART_TIME.value: 33,
+        ContractType.STUDENT.value: 27
     }
 
     return contract_hours.get(contract_type)
