@@ -1,10 +1,10 @@
 
 from sqlalchemy.orm import Session
 from app.core.schedule.shifts.service import ShiftSlotBuilder
-from app.core.schedule.allocator.allocator.service import ScheduleBuilder
+from app.core.schedule.allocator.service import ScheduleBuilder
 from app.core.schedule.talents.schema import talentAvailability
 from app.core.schedule.shifts.schema import shiftSpecification
-from app.core.schedule.allocator.allocator.engine.generators import TalentByRole
+from app.core.schedule.allocator.engine.generators import TalentByRole
 
 
 

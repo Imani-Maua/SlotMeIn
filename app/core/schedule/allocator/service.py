@@ -1,9 +1,9 @@
 from app.core.schedule.shifts.schema import shiftSpecification
 from app.core.schedule.talents.schema import talentAvailability
 from app.core.schedule.allocator.entities import assignment, underStaffedShifts
-from app.core.schedule.allocator.allocator.engine.generators import TalentGenerator
-from app.core.schedule.allocator.allocator.engine.validators import maxHoursValidator, consecutiveValidator, restValidator, dailyAssignmentValidator, context, abstractValidator
-from app.core.schedule.allocator.allocator.engine.scheduler_scoring import computeScore, roundRobinPicker
+from app.core.schedule.allocator.engine.generators import TalentGenerator
+from app.core.schedule.allocator.engine.validators import maxHoursValidator, consecutiveValidator, restValidator, dailyAssignmentValidator, context, abstractValidator
+from app.core.schedule.allocator.engine.scheduler_scoring import computeScore, roundRobinPicker
 
 
 

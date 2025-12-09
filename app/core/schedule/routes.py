@@ -18,8 +18,8 @@ from app.core.schedule.talents.repo import TalentRepository
 from app.core.schedule.talents.preprocessor import TalentPreprocessor
 from app.core.schedule.talents.assembler import TalentAssembler
 from app.core.schedule.talents.service import TalentService
-from app.core.schedule.allocator.allocator.engine.generators import TalentByRole
-from app.core.schedule.allocator.allocator.service import ScheduleBuilder, UnderstaffedShifts
+from app.core.schedule.allocator.engine.generators import TalentByRole
+from app.core.schedule.allocator.service import ScheduleBuilder, UnderstaffedShifts
 from app.core.schedule.allocator.entities import weekRange
 from app.authentication.utils.auth_utils import get_current_user
 from datetime import timedelta
