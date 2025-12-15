@@ -8,71 +8,73 @@ The system provides a complete backend solution with authentication, database ma
 
 ---
 
-## ✨ Current Features  
+## 📂 Project Structure
 
-### 🔐 Authentication & User Management
-- **JWT-based authentication**: Secure token-based authentication system
-- **User management**: User registration and authentication endpoints
+The project follows a **Domain-Driven Design (DDD)** approach, organizing code by feature rather than technical layer. This makes the codebase scalable and easier to navigate.
 
-### 📊 RESTful API Endpoints
-- **Talents Management** (`/talents`): CRUD operations for employee records
-- **Shift Templates** (`/shift_templates`): Define shift patterns and roles
-- **Shift Periods** (`/shift_period`): Manage shift time periods
-- **Talent Constraints** (`/talent_constraints`): Configure employee availability constraints
-- **Constraint Rules** (`/constraint_rules`): Define specific constraint rules per talent
-- **Schedule Generation** (`/schedule/generate`): Generate optimized weekly schedules
-
-### 🧠 Intelligent Scheduling Engine
-- **Role & availability matching**: Filters talents based on role requirements, availability windows, and allowed shift types
-- **Constraint validation**: Enforces labor regulations and business rules:
-  - **Maximum weekly hours**: Respects individual talent weekly hour limits
-  - **Daily assignment limit**: No more than one shift per day per talent
-  - **Rest period enforcement**: Minimum 11 hours rest between consecutive shifts
-  - **Consecutive workday limit**: Maximum six consecutive workdays
-- **Smart prioritization**: 
-  - Prioritizes constrained talents first, then unconstrained talents
-  - Uses `computeScore` to evaluate talent suitability for each shift
-  - Implements `roundRobinPicker` for fair distribution among equally-scored candidates
-- **Quota-aware allocation**: Assigns the exact number of required talents per role/shift
-- **Understaffing detection**: Identifies and reports shifts that couldn't be fully staffed
-
-### 💾 Database Architecture
-- **SQLAlchemy ORM**: Type-safe database models with relationships
-- **PostgreSQL backend**: Robust relational database with connection pooling
-- **Comprehensive data models**:
-  - `Talent`: Employee records with roles and contract details
-  - `TalentConstraint`: Availability constraints per talent
-  - `ConstraintRule`: Specific rules defining when talents can work
-  - `ShiftPeriod`: Shift time definitions
-  - `ShiftTemplate`: Role-specific shift templates
-  - `ScheduledShift`: Generated shift assignments
-  - `Schedule`: Weekly schedule containers
-  - `Request`: Time-off and preference requests
-
-## 🚀 Future Enhancements  
-
-- **Request handling**: Process and integrate time-off requests and preferences into scheduling
-- **Advanced optimization**: Implement fairness metrics and workload balancing algorithms
-- **Predictive staffing**: AI/ML models to forecast staffing needs based on demand patterns and seasonality
-- **Shift swapping**: Allow talents to trade shifts with approval workflows
+```
+├── app/
+│   ├── authentication/       # User auth & JWT handling
+│   │   ├── routes.py         # Login/Register endpoints
+│   │   ├── users/            # User management logic
+│   │   └── tokens/           # Token generation & validation
+│   ├── config/               # Configuration & Environment variables
+│   ├── core/                 # Core Business Logic (Domains)
+│   │   ├── talents/            # Employee management (CRUD)
+│   │   ├── shift_templates/    # Definitions of shift patterns
+│   │   ├── shift_period/       # Time intervals for shifts
+│   │   ├── constraints/        # Logic for labor rules & availability
+│   │   │   ├── constraint_rules/   # Definitions of rules (e.g., "Max 40h")
+│   │   │   └── talent_constraints/ # Assigning rules to specific talents
+│   │   └── schedule/           # The Scheduling Engine
+│   │       ├── allocator/      # Algorithms for assigning staff
+│   │       ├── staffing/       # Staffing requirement logic
+│   │       └── routes.py       # Schedule generation endpoints
+│   ├── database/             # Database connectivity & Models
+│   │   ├── models.py         # SQLModel/SQLAlchemy definitions
+│   │   └── database.py       # Asyncpg connection pool
+│   └── main.py               # Application Entry Point
+├── .env                      # Environment variables (git-ignored)
+├── .gitignore
+├── requirements.txt
+└── README.md
+```
 
 ---
 
-## 🛠️ Tech Stack
+## ✨ Key Features & Code Explanation
 
-- **Backend Framework**: FastAPI 0.116+
-- **Language**: Python 3.11+
-- **Database**: PostgreSQL with asyncpg
-- **ORM**: SQLAlchemy 2.0+
-- **Authentication**: JWT (python-jose)
-- **Password Hashing**: bcrypt via passlib
-- **Data Processing**: Pandas
-- **API Documentation**: Auto-generated OpenAPI (Swagger UI)
-- **Version Control**: Git
+### 1. 🧠 Intelligent Scheduling Engine (`app/core/schedule`)
+This is the heart of the application. It uses a constraint-satisfaction approach to assign talents to shifts.
+- **Allocator**: The module responsible for iterating through shifts and finding the best candidate.
+- **Prioritization**:
+  - **Hard Constraints**: Mandatory rules (e.g., "Must have 11h rest").
+  - **Scoring**: Talents are scored based on suitability and fairness.
+  - **Round Robin**: Used to break ties among equally qualified candidates to ensure fair distribution.
 
-## Setup
+### 2. 🛡️ Constraint System (`app/core/constraints`)
+The system manages labor regulations through two layers:
+- **Constraint Rules**: Global definitions of rules (e.g., "Daily Work Limit", "Weekly Max Hours").
+- **Talent Constraints**: Links specific rules to individual talents, allowing for custom contracts (e.g., a Part-Time employee might have a different weekly max than a Full-Time one).
 
-Follow these instructions to get Shiftly running locally.
+### 3. � Talent & Shift Management
+- **Talents**: Comprehensive profiles including roles, skills, and availability.
+- **Shift Templates**: Reusable patterns for shifts (e.g., "Morning Shift", "Night Shift") that can be instantiated across different dates.
+
+### 4. � Authentication & Security (`app/authentication`)
+- **JWT (JSON Web Tokens)**: Stateless authentication.
+- **Role-Based Access**: Granular permissions (though currently focused on Superusers for the MVP).
+- **Password Hashing**: Secure storage using `bcrypt`.
+
+### 5. 💾 Database Architecture (`app/database`)
+- **Async PostgreSQL**: Uses `asyncpg` for high-performance, non-blocking database queries.
+- **SQLAlchemy 2.0+**: Modern ORM usage for type-safe database interactions.
+
+---
+
+## 🚀 Setup
+
+Follow these instructions to get SlotMeIn running locally.
 
 ### 1. Clone the repository
 
@@ -81,12 +83,18 @@ git clone https://github.com/your-username/shiftly.git
 cd shiftly
 ```
 
-### 2. Create a virtual environment (recommended)
+### 2. Create a virtual environment
+
+We recommend using the standard `.venv` naming convention:
 
 ```bash
-python3 -m venv venv
-source venv/bin/activate  # Linux/Mac
-venv\Scripts\activate     # Windows
+# macOS/Linux
+python3 -m venv .venv
+source .venv/bin/activate
+
+# Windows
+python -m venv .venv
+.venv\Scripts\activate
 ```
 
 ### 3. Install dependencies
@@ -101,10 +109,11 @@ Create a `.env` file in the root of the project:
 
 ```bash
 # Database Configuration
-DB_HOST=your_database_host
-DB_NAME=your_database_name
-DB_USER=your_database_user
-DB_PASSWORD=your_database_password
+DB_HOST=localhost
+DB_NAME=scheduler_db
+DB_USER=postgres
+DB_PASSWORD=password
+DATABASE_URL=postgresql+asyncpg://postgres:password@localhost/scheduler_db
 
 # JWT Authentication
 SECRET_KEY=your_secret_key_here
@@ -114,14 +123,14 @@ ACCESS_TOKEN_EXPIRE_MINUTES=30
 
 ### 5. Set up the database
 
-Connect to your PostgreSQL database and create the necessary tables using SQLAlchemy:
+Ensure you have PostgreSQL running and the database created. Then initialize the schema:
 
 ```bash
-# If you have migration scripts
+# Using Alembic (if configured)
 alembic upgrade head
 
-# Or create tables programmatically
-python -c "from app.database.models import Base; from app.database.session import engine; Base.metadata.create_all(bind=engine)"
+# OR Programmatically (Dev only)
+python -c "import asyncio; from app.database.models import Base; from app.database.database import engine; asyncio.run(Base.metadata.create_all(bind=engine))"
 ```
 
 ### 6. Run the FastAPI server
@@ -134,21 +143,16 @@ The API will be available at `http://localhost:8000`
 
 ### 7. Access the API documentation
 
-FastAPI provides interactive API documentation:
-
 - **Swagger UI**: `http://localhost:8000/docs`
 - **ReDoc**: `http://localhost:8000/redoc`
 
-### 8. Generate a schedule
+---
 
-Use the `/schedule/generate` endpoint with a POST request containing a start date:
+## 🛠️ Tech Stack
 
-```json
-{
-  "start_date": "2025-11-25"
-}
-```
-
-The API will return:
-- **assignments**: List of talent-to-shift assignments with details
-- **understaffed**: List of shifts that couldn't be fully staffed
+- **Backend Framework**: FastAPI
+- **Language**: Python 3.11+
+- **Database**: PostgreSQL (Async)
+- **ORM**: SQLAlchemy 2.0+
+- **Auth**: JWT & OAuth2
+- **Testing**: Pytest (Planned)
