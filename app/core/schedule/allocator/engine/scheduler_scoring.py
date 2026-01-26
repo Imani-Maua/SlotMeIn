@@ -1,7 +1,7 @@
 from datetime import timedelta
-from app.core.schedule.services.data.shift_data import shiftSpecification
-from app.core.schedule.services.data.talent_data import talentAvailability
-from app.core.schedule.services.entities import assignment
+from app.core.schedule.shifts.schema import shiftSpecification
+from app.core.schedule.talents.schema import talentAvailability
+from app.core.schedule.allocator.entities import assignment
 
 
 

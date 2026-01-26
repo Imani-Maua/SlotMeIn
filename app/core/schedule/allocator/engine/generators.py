@@ -1,9 +1,10 @@
 from collections import defaultdict
-from app.core.schedule.services.entities import talentAvailability, shiftSpecification
+from app.core.schedule.talents.schema import talentAvailability
+from app.core.schedule.shifts.schema import shiftSpecification
 from datetime import date
 
 
-class talentByRole():
+class TalentByRole:
     @staticmethod
     def group_talents(talents: dict[int, talentAvailability]) -> dict[str, tuple[int, dict, str]]:
         """Group talents by their role.
@@ -17,7 +18,7 @@ class talentByRole():
         """
         talents_by_role = defaultdict(list)
         for id, talent_info in talents.items():
-            talents_by_role[talent_info.role].append((id, talent_info.window, talent_info.shift_name))
+            talents_by_role[talent_info.role.value].append((id, talent_info.window, talent_info.shift_name))
         return talents_by_role
 
 

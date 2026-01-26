@@ -1,8 +1,8 @@
 from abc import ABC, abstractmethod
 from datetime import timedelta, date
-from app.core.schedule.services.data.shift_data import shiftSpecification
-from app.core.schedule.services.data.talent_data import talentAvailability
-from app.core.schedule.services.entities import assignment, placedRequests
+from app.core.schedule.shifts.schema import shiftSpecification
+from app.core.schedule.talents.schema import talentAvailability
+from app.core.schedule.allocator.entities import assignment
 
 class abstractValidator(ABC):
     @abstractmethod
@@ -21,7 +21,10 @@ class abstractValidator(ABC):
 class context():
     
     @staticmethod
-    def contextFinder(talent_id: int, shift: dict[int,shiftSpecification], availability: dict[int, talentAvailability], assignments: list[assignment]):
+    def contextFinder(talent_id: int,
+                       shift: dict[int,shiftSpecification], 
+                       availability: dict[int, talentAvailability], 
+                       assignments: list[assignment]):
         """Creates a standardized context dictionary for validators.
 
         Args:
@@ -165,7 +168,7 @@ class dailyAssignmentValidator(abstractValidator):
     
 
 
-validators = [maxHoursValidator(), consecutiveValidator(), restValidator(), dailyAssignmentValidator()]
+
 
 
 
