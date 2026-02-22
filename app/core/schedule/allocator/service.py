@@ -96,54 +96,60 @@ class ScheduleBuilder:
             candidates = eligibility.get(shift_instance_id, [])
             num_assigned = 0
 
-            for talent_id in candidates:
-                if num_assigned >= shift.role_count:
-                    break
-
-                scorer = computeScore(
+            #Build scores hashmap once per shift
+            scorer = computeScore(
                     shift=shift,
                     availability=self.availability,
                     assignments=working_assignments,
                     workload=workload
                 )
-                # Pass workload to scorer if optimized (handling update in next step)
-                top_candidates = scorer.getTopCandidates(candidates)
+            scores = {tid: scorer.calculate_score(tid) for tid in candidates}
+
+            while num_assigned < shift.role_count and scores:
+                #Get top scorers and pick via round-robin
+
+                top_score = max(scores.values())
+                top_candidates = [
+                    tid for tid, score in scores.items()
+                    if score == top_score
+                ]
 
                 best_fit = round_robin.pickBestFit(shift.role_name, top_candidates)
 
-                ctx = context.contextFinder(talent_id, shift, self.availability, working_assignments)
+                if best_fit is None:
+                    break
 
-                # Check shift name validity
-                if shift.shift_name not in self.availability[talent_id].shift_name:
+                #drop the best_fit from the pool regardless of outcome - we have made a decision at this point
+
+
+                del scores[best_fit]                
+
+                if shift.shift_name not in self.availability[best_fit].shift_name:
                     continue
 
-                # Validators
+                ctx = context.contextFinder(best_fit, shift, self.availability, working_assignments)
+
                 if all(validator.can_assign_shift(ctx) for validator in validators):
+                    new_assignment = assignment(
+                        talent_id=best_fit,
+                        shift_id=shift_instance_id,
+                        shift=shift
+                    )
+
+                    plan.append(new_assignment)
+                    working_assignments.append(new_assignment)
+
+                    shift_hours = (shift.end_time - shift.start_time).total_seconds() / 3600
+                    workload[best_fit] += shift_hours
+
+                    for validator in validators:
+                        if hasattr(validator, "mark_assigned"):
+                            validator.mark_assigned(ctx)
                     
-                    if best_fit == talent_id:
-
-                        new_assignment = assignment(
-                                talent_id=talent_id,
-                                shift_id=shift_instance_id,  # now string
-                                shift=shift                  # actual shiftSpecification object
-                            )
-                        
-                        plan.append(new_assignment)
-                        working_assignments.append(new_assignment)
-                        
-
-                        # Update workload tracker
-                        shift_hours = (shift.end_time - shift.start_time).total_seconds() / 3600
-                        workload[talent_id] += shift_hours
-
-                        # Mark assignment
-                        for validator in validators:
-                            if hasattr(validator, "mark_assigned"):
-                                validator.mark_assigned(ctx)
-
-                        num_assigned += 1
-
+                    num_assigned += 1
+    
         return plan
+
 
     
 
