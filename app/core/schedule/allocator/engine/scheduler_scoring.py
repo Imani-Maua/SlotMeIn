@@ -14,7 +14,7 @@ class computeScore:
     - Minimum rest hours between consecutive shifts.
     """
 
-    def __init__(self, shift: shiftSpecification, availability: dict[int, talentAvailability], assignments: list[assignment]):
+    def __init__(self, shift: shiftSpecification, availability: dict[int, talentAvailability], assignments: list[assignment], workload: dict[int, float] = None):
         """
         Args:
             shift (shiftSpecification): 
@@ -23,10 +23,14 @@ class computeScore:
                 Mapping of talent IDs to their availability and weekly hours.
             assignments (list[assignment]): 
                 List of existing assignments to use when checking workload and streaks.
+            workload (dict[int, float], optional): 
+                Mapping of talent IDs to total hours already assigned in this run. 
+                If provided, avoids recalculating total hours from scratch.
         """
         self.shift = shift
         self.availability = availability
         self.assignments = assignments
+        self.workload = workload
 
     def calculate_score(self, talent_id: int) -> float:
         """Calculate the score for a single talent.
@@ -40,11 +44,17 @@ class computeScore:
         """
         score = 0
 
-        
+        # Remaining hours scoring
         weekly_hours = self.availability[talent_id].weeklyhours
-        hours_assigned = sum(
-            (a.shift.end_time - a.shift.start_time).total_seconds()/3600
-        for a in self.assignments if a.talent_id == talent_id)
+        
+        if self.workload is not None:
+            hours_assigned = self.workload.get(talent_id, 0.0)
+        else:
+            hours_assigned = sum(
+                (a.shift.end_time - a.shift.start_time).total_seconds()/3600
+                for a in self.assignments if a.talent_id == talent_id
+            )
+            
         remaining = weekly_hours - hours_assigned
         score += remaining
 
