@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from app.core.talents.routes import talents
 from app.core.schedule.routes import schedule
 from app.core.constraints.talent_constraints.routes import talent_constraints
@@ -9,6 +10,14 @@ from app.authentication.routes import auth_router
 
 
 app = FastAPI(title="SlotMeIn", version="1.0")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 app.include_router(auth_router, prefix="/users")
