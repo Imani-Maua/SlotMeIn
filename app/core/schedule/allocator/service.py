@@ -62,22 +62,37 @@ class TalentAvailabilityService:
 class ScheduleBuilder:
     def __init__(self, availability: dict[int, talentAvailability], 
                  assignable_shifts: dict[int, shiftSpecification],
-                talents_to_assign):
+                talents_to_assign, 
+                history: list[assignment]= None):
         self.availability = availability     # dict[int, talentAvailability]
         self.assignable_shifts = assignable_shifts  # dict[str, shiftSpecification]
         self.talents_to_assign = talents_to_assign
+        self.history = history or  []
 
     def generate_schedule(self):
         plan = []
+        working_assignments = list(self.history)
 
         availability_service = TalentAvailabilityService(
             self.availability, self.assignable_shifts, self.talents_to_assign
         )
         eligibility = availability_service.generate_eligible_talents()
         
-        validators = [maxHoursValidator(), consecutiveValidator(), restValidator(), dailyAssignmentValidator()]
+        # Sort shifts by scarcity: those with fewer eligible candidates first
+        sorted_shifts = sorted(
+            self.assignable_shifts.items(),
+            key=lambda x: len(eligibility.get(x[0], []))
+        )
 
-        for shift_instance_id, shift in self.assignable_shifts.items():
+        validators = [maxHoursValidator(), consecutiveValidator(), restValidator(), dailyAssignmentValidator()]
+        
+        # Instantiate Round Robin picker once to maintain state across shifts
+        round_robin = roundRobinPicker()
+
+        # Track assigned hours per talent for efficient scoring
+        workload = {tid: 0.0 for tid in self.availability.keys()}
+
+        for shift_instance_id, shift in sorted_shifts:
             candidates = eligibility.get(shift_instance_id, [])
             num_assigned = 0
 
@@ -88,14 +103,15 @@ class ScheduleBuilder:
                 scorer = computeScore(
                     shift=shift,
                     availability=self.availability,
-                    assignments=plan,
+                    assignments=working_assignments,
+                    workload=workload
                 )
+                # Pass workload to scorer if optimized (handling update in next step)
                 top_candidates = scorer.getTopCandidates(candidates)
 
-                round_robin = roundRobinPicker()
                 best_fit = round_robin.pickBestFit(shift.role_name, top_candidates)
 
-                ctx = context.contextFinder(talent_id, shift, self.availability, plan)
+                ctx = context.contextFinder(talent_id, shift, self.availability, working_assignments)
 
                 # Check shift name validity
                 if shift.shift_name not in self.availability[talent_id].shift_name:
@@ -106,13 +122,19 @@ class ScheduleBuilder:
                     
                     if best_fit == talent_id:
 
-                        plan.append(
-                            assignment(
+                        new_assignment = assignment(
                                 talent_id=talent_id,
                                 shift_id=shift_instance_id,  # now string
                                 shift=shift                  # actual shiftSpecification object
                             )
-                        )
+                        
+                        plan.append(new_assignment)
+                        working_assignments.append(new_assignment)
+                        
+
+                        # Update workload tracker
+                        shift_hours = (shift.end_time - shift.start_time).total_seconds() / 3600
+                        workload[talent_id] += shift_hours
 
                         # Mark assignment
                         for validator in validators:
