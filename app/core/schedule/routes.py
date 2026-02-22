@@ -7,11 +7,9 @@ based on shift requirements, talent availability, and constraints.
 
 from fastapi import APIRouter, Body, Depends
 from sqlalchemy.orm import Session
-from datetime import datetime, timedelta
+from datetime import date
 from typing import Annotated
 
-from app.database.models import ScheduledShift
-from app.core.schedule.shifts.schema import shiftSpecification as ShiftSpec
 from app.database.session import session
 from app.database.auth import User
 from app.core.schedule.schema import inputDate
@@ -22,8 +20,12 @@ from app.core.schedule.talents.assembler import TalentAssembler
 from app.core.schedule.talents.service import TalentService
 from app.core.schedule.allocator.engine.generators import TalentByRole
 from app.core.schedule.allocator.service import ScheduleBuilder, UnderstaffedShifts
-from app.core.schedule.allocator.entities import weekRange, assignment
+from app.core.schedule.allocator.entities import weekRange
 from app.authentication.utils.auth_utils import get_current_user
+from datetime import timedelta
+from app.core.schedule.allocator.entities import assignment
+from app.core.schedule.shifts.schema import shiftSpecification
+from datetime import datetime
 
 
 schedule = APIRouter(tags=["Schedule"])
@@ -44,6 +46,7 @@ async def generate_schedule(
     3. Groups talents by role
     4. Runs the optimization algorithm to assign talents to shifts
     5. Identifies any understaffed shifts
+    6. Persists the schedule and all assignments to the database
 
     The algorithm attempts to:
     - Respect talent constraints (unavailability, preferences)
@@ -58,12 +61,15 @@ async def generate_schedule(
 
     Returns:
         dict: Schedule result containing:
+            - schedule_id: ID of the saved schedule record
             - assignments: List of talent-to-shift assignments with details
             - understaffed: List of shifts that couldn't be fully staffed
 
     Raises:
         HTTPException: 403 if shift period or templates are invalid.
     """
+    from app.database.models import Schedule, ScheduledShift
+
     # 1. Get all the dates to schedule
     week_provider = weekRange(start_date=start_date.start_date)
 
@@ -81,25 +87,25 @@ async def generate_schedule(
     # 4. Group talents by role
     talents_by_role = TalentByRole.group_talents(talents=talent_objects)
 
-    #4.5 Load recent shift history for continuity
-    history_cutoff = week_provider.get_week()[0]
+    # 4.5 Load recent shift history for continuity (previous 7 days)
+    week_start = week_provider.get_week()[0]
     history_rows = (
         db.query(ScheduledShift)
         .filter(
-            ScheduledShift.date_of >= history_cutoff - timedelta(days=7),
-            ScheduledShift.date_of < history_cutoff,
+            ScheduledShift.date_of >= week_start - timedelta(days=7),
+            ScheduledShift.date_of < week_start,
         )
         .all()
     )
 
     history = [
         assignment(
-            talent_id= row.talent_id,
+            talent_id=row.talent_id,
             shift_id=row.id,
-            shift= ShiftSpec(
+            shift=shiftSpecification(
                 template_id=None,
                 start_time=datetime.combine(row.date_of, row.start_time),
-                end_time=datetime.combine(row.date_of, row.start_time),
+                end_time=datetime.combine(row.date_of, row.end_time),
                 shift_name="",
                 role_name="",
                 role_count=1
@@ -118,6 +124,7 @@ async def generate_schedule(
     )
     plan = scheduler.generate_schedule()
 
+    # 6. Identify understaffed shifts
     understaffed = UnderstaffedShifts(
         conn=db,
         assignable_shifts=assignable_shifts,
@@ -125,37 +132,103 @@ async def generate_schedule(
     )
     understaffed_shifts = understaffed.get_all()
 
+    # 7. Persist the schedule and all assignments to the database
+    week_end = week_provider.get_week()[-1]
+
+    saved_schedule = Schedule(
+        week_start=week_start,
+        week_end=week_end,
+        status="draft"
+    )
+    db.add(saved_schedule)
+    db.flush()  # get the ID before committing
+
+    for assignment in plan:
+        shift_hours = (assignment.shift.end_time - assignment.shift.start_time).total_seconds() / 3600
+        db.add(ScheduledShift(
+            talent_id=assignment.talent_id,
+            date_of=assignment.shift.start_time.date(),
+            start_time=assignment.shift.start_time.time(),
+            end_time=assignment.shift.end_time.time(),
+            shift_hours=shift_hours,
+            schedule_id=saved_schedule.id
+        ))
+
+    db.commit()
+
     return {
+        "schedule_id": saved_schedule.id,
         "assignments": [
             {
-                "talent_id": a.talent_id,
-                "shift_id": a.shift_id,
-                "role": a.shift.role_name,
-                "shift_name": a.shift.shift_name,
-                "start": a.shift.start_time,
-                "end": a.shift.end_time
-            } for a in plan
+                "talent_id": assignment.talent_id,
+                "shift_id": assignment.shift_id,
+                "role": assignment.shift.role_name,
+                "shift_name": assignment.shift.shift_name,
+                "start": assignment.shift.start_time,
+                "end": assignment.shift.end_time
+            } for assignment in plan
         ],
         "understaffed": [
             {
-                "shift_id": u.shift_id,
-                "shift_name": u.shift_name,
-                "role": u.role_name,
-                "required": u.required,
-                "assigned": u.assigned,
-                "missing": u.missing,
-                "start": u.shift_start,
-                "end": u.shift_end
-            } for u in understaffed_shifts
+                "shift_id": understaffed_shift.shift_id,
+                "shift_name": understaffed_shift.shift_name,
+                "role": understaffed_shift.role_name,
+                "required": understaffed_shift.required,
+                "assigned": understaffed_shift.assigned,
+                "missing": understaffed_shift.missing,
+                "start": understaffed_shift.shift_start,
+                "end": understaffed_shift.shift_end
+            } for understaffed_shift in understaffed_shifts
         ]
     }
 
 
+@schedule.get("/{schedule_id}")
+async def get_schedule(
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[Session, Depends(session)],
+    schedule_id: int
+):
+    """
+    Retrieve a previously generated schedule by its ID.
 
+    Args:
+        current_user: Authenticated user making the request.
+        db: Database session.
+        schedule_id: ID of the schedule to retrieve.
 
+    Returns:
+        dict: The schedule metadata and all its shift assignments.
 
+    Raises:
+        HTTPException: 404 if the schedule does not exist.
+    """
+    from app.database.models import Schedule, ScheduledShift
+    from fastapi import HTTPException
 
+    saved_schedule = db.query(Schedule).filter(Schedule.id == schedule_id).first()
+    if not saved_schedule:
+        raise HTTPException(status_code=http_status.HTTP_404_NOT_FOUND, detail="Schedule not found")
 
+    shifts = (
+        db.query(ScheduledShift)
+        .filter(ScheduledShift.schedule_id == schedule_id)
+        .all()
+    )
 
-
-
+    return {
+        "schedule_id": saved_schedule.id,
+        "week_start": saved_schedule.week_start,
+        "week_end": saved_schedule.week_end,
+        "status": saved_schedule.status,
+        "assignments": [
+            {
+                "talent_id": shift.talent_id,
+                "date": shift.date_of,
+                "start": shift.start_time,
+                "end": shift.end_time,
+                "shift_hours": float(shift.shift_hours) if shift.shift_hours else None
+            }
+            for shift in shifts
+        ]
+    }
