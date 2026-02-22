@@ -8,7 +8,7 @@ from app.core.shift_period.routes import shift_period
 from app.authentication.routes import auth_router
 
 
-app = FastAPI(title="Shiftly", version="1.0")
+app = FastAPI(title="SlotMeIn", version="1.0")
 
 
 app.include_router(auth_router, prefix="/users")

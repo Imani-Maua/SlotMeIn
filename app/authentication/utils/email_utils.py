@@ -37,13 +37,13 @@ def send_email(to_email:str, subject: str, body: str):
 def invite_message(invite_token: str, user: User):
     
     INVITE_EXPIRY_HOURS = 24
-    invite_link = f"https://shiftly.app/register?token={invite_token}"
+    invite_link = f"https://slotmein.app/register?token={invite_token}"
     name = user.username.split(".")[0].capitalize()
 
-    subject = "You've been invited to Shiftly!"
+    subject = "You've been invited to SlotMeIn!"
     body = f""" 
 Hello {name},
-You’ve been invited to join Shiftly as a {user.user_role}.
+You’ve been invited to join SlotMeIn as a {user.user_role}.
 
     Registration link (valid {INVITE_EXPIRY_HOURS} h): {invite_link}
 
