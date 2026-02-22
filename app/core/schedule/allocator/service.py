@@ -189,10 +189,10 @@ class UnderstaffedShifts:
         return understaffed
 
     def unassigned_only(self):
-        assigned_count = {a.shift_id: 1 for a in self.assigned_shifts}
+        assigned_shift_ids = {assigned_shift.shift_id for assigned_shift in self.assigned_shifts}
 
         return [
             shift
             for shift_id, shift in self.assignable_shifts.items()
-            if shift_id not in assigned_count
+            if shift_id not in assigned_shift_ids
         ]
