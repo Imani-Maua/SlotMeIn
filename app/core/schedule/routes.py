@@ -7,9 +7,11 @@ based on shift requirements, talent availability, and constraints.
 
 from fastapi import APIRouter, Body, Depends
 from sqlalchemy.orm import Session
-from datetime import date
+from datetime import datetime, timedelta
 from typing import Annotated
 
+from app.database.models import ScheduledShift
+from app.core.schedule.shifts.schema import shiftSpecification as ShiftSpec
 from app.database.session import session
 from app.database.auth import User
 from app.core.schedule.schema import inputDate
@@ -20,10 +22,8 @@ from app.core.schedule.talents.assembler import TalentAssembler
 from app.core.schedule.talents.service import TalentService
 from app.core.schedule.allocator.engine.generators import TalentByRole
 from app.core.schedule.allocator.service import ScheduleBuilder, UnderstaffedShifts
-from app.core.schedule.allocator.entities import weekRange
+from app.core.schedule.allocator.entities import weekRange, assignment
 from app.authentication.utils.auth_utils import get_current_user
-from datetime import timedelta
-
 
 
 schedule = APIRouter(tags=["Schedule"])
@@ -81,11 +81,40 @@ async def generate_schedule(
     # 4. Group talents by role
     talents_by_role = TalentByRole.group_talents(talents=talent_objects)
 
+    #4.5 Load recent shift history for continuity
+    history_cutoff = week_provider.get_week()[0]
+    history_rows = (
+        db.query(ScheduledShift)
+        .filter(
+            ScheduledShift.date_of >= history_cutoff - timedelta(days=7),
+            ScheduledShift.date_of < history_cutoff,
+        )
+        .all()
+    )
+
+    history = [
+        assignment(
+            talent_id= row.talent_id,
+            shift_id=row.id,
+            shift= ShiftSpec(
+                template_id=None,
+                start_time=datetime.combine(row.date_of, row.start_time),
+                end_time=datetime.combine(row.date_of, row.start_time),
+                shift_name="",
+                role_name="",
+                role_count=1
+            )
+        )
+        for row in history_rows
+        if row.talent_id and row.date_of and row.start_time and row.end_time
+    ]
+
     # 5. Run the scheduler
     scheduler = ScheduleBuilder(
         availability=talent_objects, 
         assignable_shifts=assignable_shifts, 
-        talents_to_assign=talents_by_role
+        talents_to_assign=talents_by_role,
+        history=history
     )
     plan = scheduler.generate_schedule()
 
