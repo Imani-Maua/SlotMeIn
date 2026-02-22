@@ -5,7 +5,7 @@ This module provides the main endpoint for generating optimized work schedules
 based on shift requirements, talent availability, and constraints.
 """
 
-from fastapi import APIRouter, Body, Depends
+from fastapi import APIRouter, Body, Depends, status
 from sqlalchemy.orm import Session
 from datetime import date
 from typing import Annotated
@@ -208,7 +208,7 @@ async def get_schedule(
 
     saved_schedule = db.query(Schedule).filter(Schedule.id == schedule_id).first()
     if not saved_schedule:
-        raise HTTPException(status_code=http_status.HTTP_404_NOT_FOUND, detail="Schedule not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Schedule not found")
 
     shifts = (
         db.query(ScheduledShift)
