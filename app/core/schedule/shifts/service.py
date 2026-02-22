@@ -4,7 +4,7 @@ from collections import defaultdict
 from sqlalchemy.orm import Session
 from app.core.schedule.staffing.service import StaffingService
 from app.core.schedule.shifts.schema import shiftSpecification
-from app.core.schedule.shifts.utils import flatten_shift_structure
+from app.core.schedule.shifts.utils import flatten_shift_structure, start_date_within_allowed_window
 
 
 
@@ -18,8 +18,7 @@ class ShiftSlotBuilder:
         self.week_spec: dict = self._build_week_spec()
 
     def _build_week_spec(self) -> dict [date, dict[int, dict[str, dict]]]:
-       #validate_week_start(start_date=start_date)
-        #start_date_within_allowed_window(start_date=self.start_date)
+        start_date_within_allowed_window(start_date=self.start_date)
         end_date = self.start_date + timedelta(days=7)
 
         week = pd.date_range(self.start_date, end_date)
