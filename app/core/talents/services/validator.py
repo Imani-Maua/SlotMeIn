@@ -30,18 +30,6 @@ def validate_talent_create(data: TalentIn, talent: Talent) -> None:
     Raises:
         HTTPException: 400 if validation fails.
     """
-    if data.start_date > date.today() + timedelta(days=7):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Start date too far in the future"
-        )
-    
-    if data.start_date < date.today():
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Start date cannot be in the past"
-        )
-    
     if talent:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -85,10 +73,16 @@ def validate_talent_update(data: TalentUpdate, talent: Talent) -> None:
         )
     
     if data.firstname is not None and not data.firstname.strip():
-        return
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="First name cannot be empty"
+        )
 
     if data.lastname is not None and not data.lastname.strip():
-        return
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Last name cannot be empty"
+        )
 
 
 def talent_exists(talent: Talent) -> None:
