@@ -6,8 +6,6 @@ from app.config.config import Settings
 
 settings = Settings()
 resend.api_key = settings.RESEND_API_KEY
-SECRET_KEY = settings.KEY
-algorithm = "HS256"
 
 
 def send_email(to_email:str, subject: str, html: str):
