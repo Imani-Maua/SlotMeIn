@@ -27,6 +27,7 @@ class TokenOut(BaseModel):
     access_token: str
     token_type: str
     role: str
+    firstname: str
 
 class TokenIn:
     token:str
