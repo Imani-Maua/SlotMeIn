@@ -54,7 +54,7 @@ class TokenService:
             if not payload:
                 raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
                                   detail="Invalid token")
-            return payload
+            return Payload(**payload)
     
         except ExpiredSignatureError:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token expired",headers={"WWW-Authenticate": "Bearer"})
