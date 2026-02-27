@@ -59,11 +59,14 @@ class TalentUpdate(BaseModel):
         return value.lower()
 
 class TalentOut(BaseModel):
+    id: int
     firstname: str
     lastname: str
+    email: str
     tal_role: str
     contract_type: str
     hours: int
+    start_date: date
     is_active: bool
     model_config = ConfigDict(from_attributes=True, use_enum_values=True)
 
