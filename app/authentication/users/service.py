@@ -75,7 +75,7 @@ class UserService():
         token_expires = timedelta(days=ACCESS_EXPIRY_DAYS)
         access_token = TokenService.create_token(data=payload, expiry=token_expires)
         TokenService.store_token(db=db, data=payload, jwt=access_token)
-        return TokenOut(access_token=access_token,token_type="bearer",role=user.user_role)
+        return TokenOut(access_token=access_token, token_type="bearer", role=user.user_role, firstname=user.firstname)
     
     
         
