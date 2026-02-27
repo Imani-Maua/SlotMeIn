@@ -16,7 +16,7 @@ from app.authentication.utils.auth_utils import get_current_user
 
 constraint_rules = APIRouter(tags=['Constraint Rules'])
 
-@constraint_rules.post("/create", response_model=ConstraintRuleOut)
+@constraint_rules.post("/create", response_model=list[ConstraintRuleOut])
 def create_constraint_rule(
     current_user: Annotated[User, Depends(get_current_user)],
     db: Annotated[Session, Depends(session)],
