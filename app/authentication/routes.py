@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends,Body
+from fastapi import APIRouter, Depends, Body
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from typing import Annotated
@@ -6,6 +6,8 @@ from app.authentication.users.schema import CreateUser, InviteTarget, NewPasswor
 from app.authentication.tokens.schema import TokenIn, TokenOut
 from app.database.session import session
 from app.authentication.users.service import UserService
+from app.authentication.utils.auth_utils import get_current_user
+from app.database.auth import User
 
 auth_router = APIRouter(tags=['Users'])
 
@@ -32,6 +34,8 @@ async def login_for_access_token(form_data: Annotated[OAuth2PasswordRequestForm,
                                   db: Annotated[Session, Depends(session)]):
     login = UserService.login(form_data=form_data, db=db)
     return login
-  
-  
- 
+
+
+@auth_router.get("/me")
+def get_me(current_user: Annotated[User, Depends(get_current_user)]):
+    return {"firstname": current_user.firstname, "role": current_user.user_role}
