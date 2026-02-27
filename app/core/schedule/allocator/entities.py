@@ -2,20 +2,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, date, timedelta
 import enum
 import pandas as pd
-
-@dataclass
-class dbCredentials:
-    host: str
-    dbname: str
-    user: str
-    password: str
-    
-class Role(enum.Enum):
-    leader = "leader"
-    server = "server"
-    bartender = "bartender"
-    hostess = "hostess"
-    runner = "runner"
+from app.core.utils.enums import Role
 
 
 @dataclass

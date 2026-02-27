@@ -2,14 +2,12 @@ from enum import Enum
 
 
 class Role(Enum):
-    MANAGER = "manager" 
-    ASSISTANT_MANAGER = "assistant manager"
-    SUPERVISOR = "supervisor"
+    MANAGER = "manager"
+    LEADER = "leader"
     BARTENDER = "bartender"
     SERVER = "server"
     RUNNER = "runner"
     HOSTESS = "hostess"
-    JOB_FORCE = "job force"
 
 
 class ContractType(Enum):
@@ -18,16 +16,6 @@ class ContractType(Enum):
     STUDENT = "student"
 
 
-class TemplateRole(Enum):
-    MANAGER = "manager" 
-    LEADER = "leader"
-    BARTENDER = "bartender"
-    SERVER = "server"
-    RUNNER = "runner"
-    HOSTESS = "hostess"
-    JOB_FORCE = "job force"
-
-    
 class Shifts(Enum):
     AM = "am"
     PM = "pm"

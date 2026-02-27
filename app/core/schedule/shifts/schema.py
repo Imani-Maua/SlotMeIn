@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 from datetime import datetime
-from app.core.utils.enums import TemplateRole
+from app.core.utils.enums import Role
 
 @dataclass
 class shiftSpecification:
@@ -8,5 +8,5 @@ class shiftSpecification:
     start_time: datetime
     end_time: datetime
     shift_name: str
-    role_name: TemplateRole
+    role_name: Role
     role_count: int

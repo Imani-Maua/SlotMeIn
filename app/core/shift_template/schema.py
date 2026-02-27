@@ -1,6 +1,6 @@
 from pydantic import BaseModel, ConfigDict, field_validator
 from datetime import time
-from app.core.utils.enums import TemplateRole, Shifts
+from app.core.utils.enums import Role, Shifts
 
 
 
@@ -8,7 +8,7 @@ class TemplateIn(BaseModel):
     period_id: int
     shift_start: time
     shift_end: time
-    role: TemplateRole
+    role: Role
 
     model_config = ConfigDict(from_attributes=True, use_enum_values=True)
 

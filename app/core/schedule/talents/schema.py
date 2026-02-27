@@ -1,14 +1,7 @@
 from dataclasses import dataclass, field
 from datetime import datetime, date, time
 import enum
-
-
-class Role(enum.Enum):
-    leader = "leader"
-    server = "server"
-    bartender = "bartender"
-    hostess = "hostess"
-    runner = "runner"
+from app.core.utils.enums import Role
 
 @dataclass
 class talentAvailability:

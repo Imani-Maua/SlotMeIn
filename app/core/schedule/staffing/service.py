@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from app.core.utils.enums import TemplateRole
+from app.core.utils.enums import Role
 from collections import defaultdict
 from app.database.models import ShiftPeriod
 
@@ -41,12 +41,12 @@ class StaffingService:
 
 
         STAFFING_CONFIGURATION_RULES = {
-            TemplateRole.MANAGER.value : {"low": 1, "med": 1, "high": 1},
-            TemplateRole.LEADER.value: {"low": 1, "med": 2, "high": 3},
-            TemplateRole.BARTENDER.value: {"low": 1, "med": 2, "high": 3},
-            TemplateRole.SERVER.value: {"low": 2, "med": 3, "high": 4},
-            TemplateRole.RUNNER.value: {"low": 1, "med": 2, "high": 3},
-            TemplateRole.HOSTESS.value: {"low": 1, "med": 1, "high": 2}
+            Role.MANAGER.value: {"low": 1, "med": 1, "high": 1},
+            Role.LEADER.value: {"low": 1, "med": 2, "high": 3},
+            Role.BARTENDER.value: {"low": 1, "med": 2, "high": 3},
+            Role.SERVER.value: {"low": 2, "med": 3, "high": 4},
+            Role.RUNNER.value: {"low": 1, "med": 2, "high": 3},
+            Role.HOSTESS.value: {"low": 1, "med": 1, "high": 2}
         }
 
         role_staffing = STAFFING_CONFIGURATION_RULES.get(role)

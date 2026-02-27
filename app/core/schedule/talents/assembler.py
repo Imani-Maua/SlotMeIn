@@ -3,7 +3,7 @@ from datetime import datetime, date
 from app.core.schedule.talents.schema import talentAvailability, TalentRecord
 from app.core.schedule.allocator.entities import weekRange
 from app.core.schedule.talents.utils import map_shift_name_to_time
-from app.core.utils.enums import TemplateRole
+from app.core.utils.enums import Role
 
 class TalentAssembler:
     def __init__(self, week_provider: weekRange):
@@ -36,7 +36,7 @@ class TalentAssembler:
             result[tid] = talentAvailability(
                 talent_id=record.talent_id,
                 constraint=record.constraint_status,
-                role=TemplateRole(record.role),
+                role=Role(record.role),
                 shift_name=record.shifts,
                 window=window,
                 weeklyhours=record.weeklyhours
