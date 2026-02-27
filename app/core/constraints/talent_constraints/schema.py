@@ -10,8 +10,8 @@ class Talent(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 class Rules(BaseModel):
-    day: str
-    shifts: str
+    day: Days | None = None
+    shifts: Shifts | None = None
 
     model_config = ConfigDict(from_attributes=True, exclude_none=True)
 
@@ -27,6 +27,7 @@ class ConstraintUpdate(BaseModel):
     shifts: Shifts | None = None
 
 class ConstraintOut(BaseModel):
+    id: int
     talent: Talent
     type: ConstraintType
     is_active: bool

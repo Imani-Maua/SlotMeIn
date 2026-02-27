@@ -39,7 +39,7 @@ def get_all_constraints(db: Session,
                         name: str | None = None,
                         contract_type: str | None = None,
                         is_active: bool| None = None):
-    query = db.query(TalentConstraint).join(Talent).join(ConstraintRule)
+    query = db.query(TalentConstraint).join(Talent).outerjoin(ConstraintRule)
     constraints = search_filters(query=query, 
                                  constraint_id=constraint_id,
                                  talent_id=talent_id,
