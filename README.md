@@ -30,7 +30,7 @@ The system provides a complete backend solution with authentication, database ma
 ---
 
 ## 🚀 Try Out SlotMeIn
-Experience the live application here: **[SlotMeIn Live Demo](https://slotmein.onrender.com)**  
+Experience the live application here: **[SlotMeIn Live Demo](https://slotmein.vercel.app)**  
 
 ### Note
 > This app is invite-only by design. Therefore you cannot create your own account.
