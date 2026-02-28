@@ -3,7 +3,7 @@ from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from sqlalchemy import insert
 from datetime import timedelta
-from jose import JWTError
+from jose import JWTError as JoseJWTError
 from app.authentication.users.schema import CreateUser, UserOut, InviteTarget, NewPassword
 from app.database.auth import User
 from app.authentication.utils.auth_utils import lookup_user, authenticate_user, activate_user_account
@@ -51,7 +51,15 @@ class UserService():
     
     @staticmethod
     def set_new_password(db: Session, data: NewPassword):
-        decoded = TokenService.verify_token_type(data.token, TokenType.invite.value)
+        
+        try:
+            decoded = TokenService.verify_token_type(data.token, TokenType.invite.value)
+        except JoseJWTError as e:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail=f"Invalid or expired invite link. Please ask for a new invitation. ({e})"
+            )
+
         payload = Payload(**decoded)
 
         TokenService.verify_token(db=db, token=data.token, type=payload.type)
