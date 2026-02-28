@@ -4,7 +4,19 @@ from app.core.utils.enums import ConstraintType
 from app.core.schedule.talents.schema import TalentRecord
 from app.core.schedule.talents.utils import fetch_all_shifts
 
+
 class TalentPreprocessor:
+    """
+    Converts raw talent_data view rows into TalentRecord objects.
+
+    IMPORTANT TO UNDERSTAND: This confused me when developing frontend.
+    All constraint types are WHITELISTS — the manager selects what the talent
+    CAN do, not what they cannot:
+      - availability:       These are the days the person works (their working days)
+      - shift restriction:  These are the shifts the person can be assigned
+      - combination:        This is the exact day + shift combination they work
+    """
+
     def __init__(self, week_provider: weekRange):
         self.week_provider = week_provider
 
@@ -28,37 +40,36 @@ class TalentPreprocessor:
             if not row.constraint_status:
                 continue
 
-            # Constrained logic
             constrained_talents = (row.constraint_type or "").lower()
 
             if constrained_talents == ConstraintType.COMBINATION.value:
-                # Both day + shift defined
+                # Manager picks the day + shift this person works
                 records[tid]["days"].add(row.available_day)
                 records[tid]["shifts"].add(row.available_shifts)
 
             elif constrained_talents == ConstraintType.SHIFT_RESTRICTION.value:
-                # Shifts defined, days = all days
+                # Manager picks the shifts this person can work; available all days
                 records[tid]["shifts"].add(row.available_shifts)
                 records[tid]["days"] = set(self.week_provider.get_date_map().keys())
 
             elif constrained_talents == ConstraintType.AVAILABILITY.value:
-                # Availability defined by days only
+                # Manager picks the days this person works; available for all shifts
                 records[tid]["days"].add(row.available_day)
-                # shifts = all shifts available
-                # But only if not already set by combination
                 if not records[tid]["shifts"]:
                     records[tid]["shifts"] = set(fetch_all_shifts())
 
-        # Final conversion to dataclass-like record
+        
         talent_objects: dict[int, TalentRecord] = {}
+        all_week_days = set(self.week_provider.get_date_map().keys())
+
         for tid, record in records.items():
             if not record["constraint_status"]:
-                # unconstrained:
-                days = list(self.week_provider.get_date_map().keys())
+                
+                days = list(all_week_days)
                 shifts = fetch_all_shifts()
             else:
-                days = list(record["days"])
-                shifts = list(record["shifts"])
+                days = list(record["days"]) if record["days"] else list(all_week_days)
+                shifts = list(record["shifts"]) if record["shifts"] else fetch_all_shifts()
 
             talent_objects[tid] = TalentRecord(
                 talent_id=tid,
@@ -70,5 +81,3 @@ class TalentPreprocessor:
             )
 
         return talent_objects
-    
-
