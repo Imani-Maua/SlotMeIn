@@ -141,7 +141,30 @@ class dailyAssignmentValidator(abstractValidator):
         talent_id: int = context["talent_id"]
         shift:  shiftSpecification = context["shift"]
         return not (talent_id, shift.start_time.date()) in self.assigned
-    
+
+class maxHoursValidator(abstractValidator): 
+    """
+    Validator that ensures a talent's total assigned 
+    hours do not exceed their weekly limit.
+    """ 
+    def can_assign_shift(self, context: dict) -> bool: 
+        """
+        Check if assigning the current shift exceeds the talent's weekly 
+        working hours. Args: context (dict): Context containing talent_id, shift, availability, 
+        and assignments. Returns: bool: True if the shift can be assigned without exceeding weekly hours, 
+        False otherwise. """ 
+        talent_id: int = context["talent_id"] 
+        shift: shiftSpecification = context["shift"] 
+        availability: dict[int, talentAvailability] = context["availability"] 
+        assignments: list[assignment] = context["assignments"] 
+        duration = (shift.end_time - shift.start_time).total_seconds() / 3600 
+        shift_date = shift.start_time.date() 
+        start_of_week = shift_date - timedelta(days=(shift_date.weekday() + 1) % 7) 
+        end_of_week = start_of_week + timedelta(days=6) # Only sum hours for assignments within the same week 
+        existing_assignments = [ a for a in assignments if a.talent_id == talent_id and start_of_week <= a.shift.start_time.date() <= end_of_week ] 
+        total_hours = sum( (a.shift.end_time - a.shift.start_time).total_seconds() / 3600 for a in existing_assignments ) 
+        
+        return total_hours + duration <= availability[talent_id].weeklyhours
 
 
 
