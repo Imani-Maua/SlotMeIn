@@ -1,10 +1,30 @@
-# SlotMeIn
+# SlotMeIn v.1.0.0
 
 **SlotMeIn** is a FastAPI-based shift scheduling REST API designed to intelligently allocate employees (called **talents**) to shifts while respecting their availability, constraints, and labor regulations.
 
-The system provides a complete backend solution with authentication, database management, and a sophisticated scheduling engine that ensures fair and compliant shift assignments.
+The system provides a complete backend solution with authentication, database management, and a sophisticated scheduling engine that tries to ensure fair and compliant shift assignments.
 
-> ⚠️ **Note:** This is an MVP and not yet in production.
+---
+
+## 📑 Table of Contents
+
+- [📂 Project Structure](#-project-structure)
+- [✨ Key Features & Code Explanation](#-key-features--code-explanation)
+  - [1. 🧠 Intelligent Scheduling Engine](#1--intelligent-scheduling-engine-appcoreschedule)
+  - [2. 🛡️ Constraint System](#2-️-constraint-system-appcoreconstraints)
+  - [3. Talent & Shift Management](#3--talent--shift-management)
+  - [4. Authentication & Security](#4--authentication--security-appauthentication)
+  - [5. 💾 Database Architecture](#5--database-architecture-appdatabase)
+- [🚀 Setup](#-setup)
+  - [1. Clone the repository](#1-clone-the-repository)
+  - [2. Create a virtual environment](#2-create-a-virtual-environment)
+  - [3. Install dependencies](#3-install-dependencies)
+  - [4. Set up environment variables](#4-set-up-environment-variables)
+  - [5. Set up the database](#5-set-up-the-database-skip-if-using-supabase)
+  - [6. Run the FastAPI server](#6-run-the-fastapi-server)
+  - [7. Access the API documentation](#7-access-the-api-documentation)
+- [🚀 Try Out SlotMeIn](#-try-out-slotmein)
+- [🛠️ Tech Stack](#️-tech-stack)
 
 ---
 
@@ -21,7 +41,7 @@ The project follows a **Domain-Driven Design (DDD)** approach, organizing code b
 │   ├── config/               # Configuration & Environment variables
 │   ├── core/                 # Core Business Logic (Domains)
 │   │   ├── talents/            # Employee management (CRUD)
-│   │   ├── shift_templates/    # Definitions of shift patterns
+│   │   ├── shift_template/     # Definitions of shift patterns
 │   │   ├── shift_period/       # Time intervals for shifts
 │   │   ├── constraints/        # Logic for labor rules & availability
 │   │   │   ├── constraint_rules/   # Definitions of rules (e.g., "Max 40h")
@@ -32,7 +52,7 @@ The project follows a **Domain-Driven Design (DDD)** approach, organizing code b
 │   │       └── routes.py       # Schedule generation endpoints
 │   ├── database/             # Database connectivity & Models
 │   │   ├── models.py         # SQLModel/SQLAlchemy definitions
-│   │   └── database.py       # Asyncpg connection pool
+│   │   └── session.py        # Database session management
 │   └── main.py               # Application Entry Point
 ├── .env                      # Environment variables (git-ignored)
 ├── .gitignore
@@ -63,11 +83,11 @@ The system manages labor regulations through two layers:
 
 ### 4. � Authentication & Security (`app/authentication`)
 - **JWT (JSON Web Tokens)**: Stateless authentication.
-- **Role-Based Access**: Granular permissions (though currently focused on Superusers for the MVP).
+- **Role-Based Access**: Granular permissions (though currently focused on Superusers).
 - **Password Hashing**: Secure storage using `bcrypt`.
 
 ### 5. 💾 Database Architecture (`app/database`)
-- **Async PostgreSQL**: Uses `asyncpg` for high-performance, non-blocking database queries.
+- **Postgres Support**: Robust database connectivity.
 - **SQLAlchemy 2.0+**: Modern ORM usage for type-safe database interactions.
 
 ---
@@ -79,7 +99,7 @@ Follow these instructions to get SlotMeIn running locally.
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/your-username/slotmein.git
+git clone https://github.com/Imani-Maua/slotmein.git
 cd slotmein 
 ```
 
@@ -109,19 +129,32 @@ Create a `.env` file in the root of the project:
 
 ```bash
 # Database Configuration
+DB_HOST = db.xxxxxxxxxx.supabase.co
+DB_NAME = postgres
+DB_USER = postgres
+DB_PASSWORD = xxxxxxx
+DATABASE_URL = "postgresql://postgres.[your_id]:[password]@axxxxxxx.supabase.com:5432/postgres?sslmode=require"
+KEY = "your_super_super_secret_key"
+RESEND_API_KEY = "your_resend_api_key"
+
+# JWT Authentication (Pending full config integration)
+# SECRET_KEY=...
+# ALGORITHM=HS256
+# ACCESS_TOKEN_EXPIRE_MINUTES=30
+```
+
+The above configuration using Supabase is recommended. However, you can use local Postgres:
+
+```bash
+# Database Configuration
 DB_HOST=localhost
 DB_NAME=scheduler_db
 DB_USER=postgres
 DB_PASSWORD=password
-DATABASE_URL=postgresql+asyncpg://postgres:password@localhost/scheduler_db
-
-# JWT Authentication
-SECRET_KEY=your_secret_key_here
-ALGORITHM=HS256
-ACCESS_TOKEN_EXPIRE_MINUTES=30
+DATABASE_URL=postgresql://postgres:password@localhost/scheduler_db
 ```
 
-### 5. Set up the database
+### 5. Set up the database (skip if using supabase)
 
 Ensure you have PostgreSQL running and the database created. Then initialize the schema:
 
@@ -148,11 +181,27 @@ The API will be available at `http://localhost:8000`
 
 ---
 
+## 🚀 Try Out SlotMeIn
+
+> This app is invite-only by design. Therefore you cannot create your own account.
+> To explore the platform, use:
+
+username: test.user
+password: Password@123
+
+The only downside of this is that you dont have access to user creation endpoints, meaning you cannot sent invites to new users. 
+However, the core functionality of the app is fully available.
+
+[Click here](https://slotmein.vercel.app)to acces the app 
+
+---
+
 ## 🛠️ Tech Stack
 
 - **Backend Framework**: FastAPI
 - **Language**: Python 3.11+
-- **Database**: PostgreSQL (Async)
+- **Database**: PostgreSQL
 - **ORM**: SQLAlchemy 2.0+
 - **Auth**: JWT & OAuth2
-- **Testing**: Pytest (Planned)
+
+
