@@ -40,11 +40,10 @@ def get_period(db: Session, id: int):
 
 def get_all_periods(db: Session,
                     shift_name: str | None = None,
-                   start_time: time | None = None,
-                   end_time: time | None = None):
+                    start_time: time | None = None,
+                    end_time: time | None = None):
     query = db.query(ShiftPeriod)
-    templates = search_filters(query=query, shift_name=shift_name, start_time=start_time, end_time=end_time)
-    period_exists(query)
-    return [ShiftOut.model_validate(template) for template in templates]
+    periods = search_filters(query=query, shift_name=shift_name, start_time=start_time, end_time=end_time)
+    return [ShiftOut.model_validate(period) for period in periods]
 
         
