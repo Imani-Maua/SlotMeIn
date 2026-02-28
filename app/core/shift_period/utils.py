@@ -12,9 +12,9 @@ def search_filters(query: Query,
         query = query.filter(ShiftPeriod.shift_name == shift_name)
     
     if start_time:
-        query = query.filter(ShiftPeriod.start_time)
+        query = query.filter(ShiftPeriod.start_time == start_time)
     
     if end_time:
-        query = query.filter(ShiftPeriod.end_time)
+        query = query.filter(ShiftPeriod.end_time == end_time)
     
     return query.all()
