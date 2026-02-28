@@ -22,11 +22,23 @@ class ShiftPeriodService(CRUDBase[ShiftPeriod, ShiftPeriodIn, ShiftPeriodUpdate]
        
         return ShiftOut.model_validate(created_shift_period)
 
-    def update_shift_period(self, db: Session, data: ShiftPeriodUpdate, period_id: int):
-        shift_period = db.query(ShiftPeriod).filter(ShiftPeriod.id == period_id).first()
-        validate_shift_period_update(data=data, period=shift_period)
-        updated_shift = self.update(db=db, db_obj=shift_period, obj_in=data)
-        return ShiftOut.model_validate(updated_shift)
+    def update_shift_period(self, db: Session, data: ShiftPeriodUpdate, period_id: int) -> ShiftOut:
+        period = db.query(ShiftPeriod).filter(ShiftPeriod.id == period_id).first()
+        validate_shift_period_update(data=data, period=period)
+        
+        # New: Safety check for existing templates
+        new_start = data.start_time if data.start_time else period.start_time
+        new_end = data.end_time if data.end_time else period.end_time
+        
+        for template in period.templates:
+            if template.shift_start < new_start or template.shift_end > new_end:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Cannot shrink period: Template for {template.role} ({template.shift_start}-{template.shift_end}) falls outside new bounds."
+                )
+
+        updated_period = self.update(db=db, db_obj=period, obj_in=data)
+        return ShiftOut.model_validate(updated_period)
 
     def delete_shift_period(self, db: Session, period_id: int):
         shift_period = db.query(ShiftPeriod).filter(ShiftPeriod.id == period_id).first()
