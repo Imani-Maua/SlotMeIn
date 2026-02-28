@@ -24,7 +24,7 @@ app.include_router(auth_router, prefix="/users")
 app.include_router(talents, prefix="/talents")
 app.include_router(talent_constraints, prefix="/talent_constraints")
 app.include_router(constraint_rules, prefix="/constraint_rules")
-app.include_router(shift_period, prefix="/shift_period")
+app.include_router(shift_period, prefix="/shift_periods")
 app.include_router(shift_templates, prefix="/shift_templates")
 app.include_router(schedule, prefix="/schedule")
 
