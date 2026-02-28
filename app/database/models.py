@@ -89,6 +89,7 @@ class ScheduledShift(Base):
     start_time: Mapped[Optional[time]] = mapped_column(Time)
     end_time: Mapped[Optional[time]] = mapped_column(Time)
     shift_hours: Mapped[Optional[float]] = mapped_column(Numeric(3, 1))
+    shift_name: Mapped[Optional[str]] = mapped_column(String(50))
     schedule_id: Mapped[Optional[int]] = mapped_column(ForeignKey("schedules.id", ondelete="CASCADE"))
 
    
