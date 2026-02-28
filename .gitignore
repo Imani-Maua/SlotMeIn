@@ -3,7 +3,7 @@
 .mypy_cache
 venv/
 __pycache__/
-*.pyc\
+*.pyc
 mydb.db 12-41-36-254.db
 scheduler.db
 scheduler.db 19-19-25-318.db
