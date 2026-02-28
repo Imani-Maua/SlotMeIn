@@ -11,3 +11,4 @@ gunicorn>=21.2
 uvicorn[standard]>=0.27
 pydantic[email]
 psycopg2-binary
+python-multipart
