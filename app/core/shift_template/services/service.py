@@ -141,5 +141,4 @@ def get_all_templates(
         shift_end=shift_end,
         shift_start=shift_start
     )
-    template_exists(templates)
     return [TemplateOut.model_validate(template) for template in templates]
