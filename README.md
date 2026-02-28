@@ -8,6 +8,7 @@ The system provides a complete backend solution with authentication, database ma
 
 ## 📑 Table of Contents
 
+- [Live Demo](#-live-demo)
 - [📂 Project Structure](#-project-structure)
 - [✨ Key Features & Code Explanation](#-key-features--code-explanation)
   - [1. 🧠 Intelligent Scheduling Engine](#1--intelligent-scheduling-engine-appcoreschedule)
@@ -27,6 +28,20 @@ The system provides a complete backend solution with authentication, database ma
 - [🛠️ Tech Stack](#️-tech-stack)
 
 ---
+
+## 🚀 Try Out SlotMeIn
+Experience the live application here: **[SlotMeIn Live Demo](https://slotmein.onrender.com)**  
+
+### Note
+> This app is invite-only by design. Therefore you cannot create your own account.
+> To explore the platform, use:
+
+- username: test.user
+- password: Password@123
+
+The only downside of this is that you dont have access to user creation endpoints, meaning you cannot sent invites to new users. 
+However, the core functionality of the app is fully available.
+The test database is configured with AI generated test data.
 
 ## 📂 Project Structure
 
@@ -181,21 +196,6 @@ The API will be available at `http://localhost:8000`
 
 ---
 
-## 🚀 Try Out SlotMeIn
-
-> This app is invite-only by design. Therefore you cannot create your own account.
-> To explore the platform, use:
-
-username: test.user
-password: Password@123
-
-The only downside of this is that you dont have access to user creation endpoints, meaning you cannot sent invites to new users. 
-However, the core functionality of the app is fully available.
-
-[Click here](https://slotmein.vercel.app)to acces the app 
-
----
-
 ## 🛠️ Tech Stack
 
 - **Backend Framework**: FastAPI
@@ -204,4 +204,10 @@ However, the core functionality of the app is fully available.
 - **ORM**: SQLAlchemy 2.0+
 - **Auth**: JWT & OAuth2
 
+## 📄 License
+
+MIT
+
+
+### Developed by Maua Imani
 
