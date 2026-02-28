@@ -81,8 +81,8 @@ class TokenService:
     
     @staticmethod
     def search_token(db: Session, token: str, type:TokenType):
-        payload: dict = TokenService.decode_token(token=token)
-        jti = payload.get("jti")
+        payload: Payload = TokenService.decode_token(token=token)
+        jti = payload.jti
         if not jti:
             raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, 
