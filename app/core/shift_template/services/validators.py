@@ -23,8 +23,12 @@ def validate_shift_template(data: TemplateIn, period: ShiftPeriod):
     if data.shift_end > period.end_time or data.shift_end < period.start_time:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                             detail="Please select a template end time that falls within the shift period.")
-    if data.shift_end - data.shift_start < minimum_shift_length:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
+    # Convert times to total minutes for comparison
+    start_mins = data.shift_start.hour * 60 + data.shift_start.minute
+    end_mins = data.shift_end.hour * 60 + data.shift_end.minute
+    
+    if end_mins - start_mins < 240: # 4 hours = 240 minutes
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                             detail="A shift cannot be less than 4 hours")
 
 
@@ -51,28 +55,18 @@ def validate_shift_template_update(data: TemplateUpdate, template: ShiftTemplate
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                             detail="Must enter at least one field")
     
-    if has_end_time and not has_start_time and data.shift_end < template.shift_start:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                            detail="End time cannot be before start time")
-    
-    if has_end_time and not has_start_time and data.shift_end - data.shift_start < minimum_shift_length:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
-                            detail="A shift cannot be less than 4 hours")
-    
-    if has_start_time and not has_end_time and data.shift_end - data.shift_start < minimum_shift_length:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
-                            detail="A shift cannot be less than 4 hours")
-    
-    if has_start_time and not has_end_time and data.shift_start > template.shift_end:
+    new_start = data.shift_start if has_start_time else template.shift_start
+    new_end = data.shift_end if has_end_time else template.shift_end
+
+    if new_start > new_end:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                             detail="Start time cannot be after end time")
-    
-    if has_start_time and has_end_time and data.shift_start > data.shift_end:
+
+    start_mins = new_start.hour * 60 + new_start.minute
+    end_mins = new_end.hour * 60 + new_end.minute
+
+    if end_mins - start_mins < 240:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                            detail="Start time cannot be after end time")
-    
-    if has_start_time and has_end_time and data.shift_end - data.shift_start < minimum_shift_length:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
                             detail="A shift cannot be less than 4 hours")
     
     
