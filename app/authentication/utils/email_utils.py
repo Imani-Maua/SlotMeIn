@@ -74,7 +74,7 @@ def invite_message(invite_token: str, user: User):
     try:
         send_email(to_email=user.email, subject=subject, html=html)
     except Exception as e:
-            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to send email: {e}")
+            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Failed to send email: {e}")
     
     return {"message": f"Invite sent to {user.email}"}
 
