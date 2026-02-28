@@ -34,6 +34,8 @@ class PeriodOut(BaseModel):
         return value
 
 class TemplateOut(BaseModel):
+    id: int
+    role: str
     period: PeriodOut
     shift_start: time 
     shift_end: time 

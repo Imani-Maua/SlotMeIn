@@ -19,7 +19,8 @@ class ShiftPeriodIn(BaseModel):
         return value
 
 class TemplatesOut(BaseModel):
-    role: Role
+    id: int
+    role: str
     shift_start: time
     shift_end: time
 
@@ -33,6 +34,7 @@ class ShiftPeriodUpdate(BaseModel):
 
    
 class OneShiftOut(BaseModel):
+    id: int
     shift_name: Shifts
     start_time: time
     end_time: time
@@ -41,10 +43,10 @@ class OneShiftOut(BaseModel):
     model_config = ConfigDict(use_enum_values=True, from_attributes=True)
 
 class ShiftOut(BaseModel):
+    id: int
     shift_name: Shifts
     start_time: time
     end_time: time
-    
 
     model_config = ConfigDict(use_enum_values=True, from_attributes=True)
 
