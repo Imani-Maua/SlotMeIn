@@ -9,3 +9,4 @@ resend==2.23.0
 SQLAlchemy==2.0.47
 gunicorn>=21.2
 uvicorn[standard]>=0.27
+pydantic[email]
