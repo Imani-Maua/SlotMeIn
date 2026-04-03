@@ -1,4 +1,4 @@
-# SlotMeIn v.1.0.0
+# SlotMeIn
 
 **SlotMeIn** is a FastAPI-based shift scheduling REST API designed to intelligently allocate employees (called **talents**) to shifts while respecting their availability, constraints, and labor regulations.
 
