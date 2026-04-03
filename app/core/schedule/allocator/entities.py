@@ -1,6 +1,5 @@
 from dataclasses import dataclass, field
 from datetime import datetime, date, timedelta
-import enum
 import pandas as pd
 from app.core.utils.enums import Role
 
