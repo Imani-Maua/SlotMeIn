@@ -20,7 +20,7 @@ talent_constraints = APIRouter(tags=["Talent Constraints"])
 
 
 
-@talent_constraints.post("/create", response_model=ConstraintOut)
+@talent_constraints.post("/", response_model=ConstraintOut)
 def create_constraint(
     current_user: Annotated[User, Depends(get_current_user)],
     db: Annotated[Session, Depends(session)],
@@ -46,7 +46,7 @@ def create_constraint(
     constraint = TalentConstraintService().create_constraint(db=db, data=data)
     return constraint
 
-@talent_constraints.delete("/delete/{constraint_id}", status_code=204)
+@talent_constraints.delete("/{constraint_id}", status_code=204)
 def delete_constraint(
     current_user: Annotated[User, Depends(get_current_user)],
     db: Annotated[Session, Depends(session)],
@@ -67,7 +67,7 @@ def delete_constraint(
     """
     TalentConstraintService().delete_constraint(db=db, constraint_id=constraint_id)
 
-@talent_constraints.get("/retrieve_constraint/{constraint_id}", response_model=ConstraintOut)
+@talent_constraints.get("/{constraint_id}", response_model=ConstraintOut)
 def retrieve_constraint(
     current_user: Annotated[User, Depends(get_current_user)],
     db: Annotated[Session, Depends(session)],
@@ -91,7 +91,7 @@ def retrieve_constraint(
     """
     return get_constraint(db=db, id=constraint_id)
 
-@talent_constraints.get("/retrieve_all_constraints", response_model=list[ConstraintOut])
+@talent_constraints.get("/", response_model=list[ConstraintOut])
 def retrieve_all_constraints(
     current_user: Annotated[User, Depends(get_current_user)],
     db: Annotated[Session, Depends(session)],
