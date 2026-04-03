@@ -64,7 +64,7 @@ class consecutiveValidator(abstractValidator):
         assignments: list[assignment] = context["assignments"]
 
         def check(date, streak=1):
-            if streak >= 6:
+            if streak > 6:
                 return False
             
             prev_date = date - timedelta(days=1)
