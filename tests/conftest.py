@@ -21,7 +21,7 @@ def make_shift():
 
 
 @pytest.fixture
-def make_asignment():
+def make_assignment():
     def _factory(talent_id: int, shift_id: int, shift: shiftSpecification):
         return assignment(
             talent_id=talent_id,
