@@ -3,6 +3,7 @@ from datetime import timedelta, date
 from app.core.schedule.shifts.schema import shiftSpecification
 from app.core.schedule.talents.schema import talentAvailability
 from app.core.schedule.allocator.entities import assignment
+from app.core.schedule.allocator.engine.utils import get_break_duration
 
 class abstractValidator(ABC):
     @abstractmethod
@@ -147,24 +148,32 @@ class maxHoursValidator(abstractValidator):
     Validator that ensures a talent's total assigned 
     hours do not exceed their weekly limit.
     """ 
+
+    BUFFER_HOURS = 1.0
     def can_assign_shift(self, context: dict) -> bool: 
         """
         Check if assigning the current shift exceeds the talent's weekly 
         working hours. Args: context (dict): Context containing talent_id, shift, availability, 
         and assignments. Returns: bool: True if the shift can be assigned without exceeding weekly hours, 
         False otherwise. """ 
+
         talent_id: int = context["talent_id"] 
         shift: shiftSpecification = context["shift"] 
         availability: dict[int, talentAvailability] = context["availability"] 
         assignments: list[assignment] = context["assignments"] 
-        duration = (shift.end_time - shift.start_time).total_seconds() / 3600 
+
+        
+
+        duration = (shift.end_time - shift.start_time).total_seconds() / 3600 - get_break_duration(shift_name=shift.shift_name)
         shift_date = shift.start_time.date() 
         start_of_week = shift_date - timedelta(days=(shift_date.weekday() + 1) % 7) 
         end_of_week = start_of_week + timedelta(days=6) # Only sum hours for assignments within the same week 
-        existing_assignments = [ a for a in assignments if a.talent_id == talent_id and start_of_week <= a.shift.start_time.date() <= end_of_week ] 
-        total_hours = sum( (a.shift.end_time - a.shift.start_time).total_seconds() / 3600 for a in existing_assignments ) 
+
         
-        return total_hours + duration <= availability[talent_id].weeklyhours
+        existing_assignments = [ assign for assign in assignments if assign.talent_id == talent_id and start_of_week <= assign.shift.start_time.date() <= end_of_week ] 
+        total_hours = sum( (assign.shift.end_time - assign.shift.start_time).total_seconds() / 3600 - get_break_duration(assign.shift.shift_name) for assign in existing_assignments ) 
+        
+        return total_hours + duration <= availability[talent_id].weeklyhours + self.BUFFER_HOURS
 
 
 
