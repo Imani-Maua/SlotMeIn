@@ -43,3 +43,16 @@ def make_context():
     
     return _factory
 
+
+@pytest.fixture
+def make_availability():
+    def _factory(talent_id:int, constraint: bool, role: Role, shift_name: str, window:dict, weeklyhours: float):
+        return talentAvailability(
+            talent_id=talent_id,
+            constraint= constraint,
+            role= role,
+            shift_name=shift_name,
+            window=window, 
+            weeklyhours= weeklyhours
+        )
+    return _factory
