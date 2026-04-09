@@ -1,5 +1,5 @@
 import pytest
-from datetime import datetime
+from datetime import datetime, timedelta
 from app.core.schedule.shifts.schema import shiftSpecification
 from app.core.schedule.allocator.entities import assignment
 from app.core.utils.enums import Role
@@ -56,3 +56,9 @@ def make_availability():
             weeklyhours= weeklyhours
         )
     return _factory
+
+
+@pytest.fixture
+def start_of_week():
+    today = datetime.now().date()
+    return today - timedelta(days=(today.weekday() + 1) % 7)
