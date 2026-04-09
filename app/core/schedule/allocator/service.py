@@ -2,8 +2,9 @@ from app.core.schedule.shifts.schema import shiftSpecification
 from app.core.schedule.talents.schema import talentAvailability
 from app.core.schedule.allocator.entities import assignment, underStaffedShifts
 from app.core.schedule.allocator.engine.generators import TalentGenerator
-from app.core.schedule.allocator.engine.validators import maxHoursValidator, consecutiveValidator, restValidator, dailyAssignmentValidator, context, abstractValidator
+from app.core.schedule.allocator.engine.validators import maxHoursValidator, consecutiveValidator, restValidator, dailyAssignmentValidator, context
 from app.core.schedule.allocator.engine.scheduler_scoring import computeScore, roundRobinPicker
+from app.core.schedule.allocator.engine.utils import get_break_duration
 
 
 
@@ -16,7 +17,7 @@ class TalentAvailabilityService:
         self.assignable_shifts = assignable_shifts  
         self.talents_to_assign = talents_to_assign 
 
-    def define_talent_availability_window(self):
+    def _define_talent_availability_window(self):
         """
         Returns:
             dict[(talent_id, date), list[(start_dt, end_dt)]]
@@ -27,7 +28,7 @@ class TalentAvailabilityService:
             for date, spans in avail.window.items()
         }
 
-    def define_talent_types(self):
+    def _define_talent_types(self):
         return {
             "constrained": [t.talent_id for t in self.availability.values() if t.constraint],
             "unconstrained": [t.talent_id for t in self.availability.values() if not t.constraint],
@@ -39,8 +40,8 @@ class TalentAvailabilityService:
             dict[str, list[int]]
             shift_instance_id → [talent_ids]
         """
-        talent_types = self.define_talent_types()
-        window = self.define_talent_availability_window()
+        talent_types = self._define_talent_types()
+        window = self._define_talent_availability_window()
 
         eligibility = {}
 
@@ -49,8 +50,8 @@ class TalentAvailabilityService:
             candidates = list(gen.find_eligible_talents())
 
             prioritized = (
-                [t for t in candidates if t in talent_types["constrained"]] +
-                [t for t in candidates if t in talent_types["unconstrained"]]
+                [talent for talent in candidates if talent in talent_types["constrained"]] +
+                [talent for talent in candidates if talent in talent_types["unconstrained"]]
             )
 
             eligibility[shift_instance_id] = prioritized
@@ -69,6 +70,13 @@ class ScheduleBuilder:
         self.talents_to_assign = talents_to_assign
         self.history = history or  []
 
+    def _build_initial_workload_dict(self) -> dict[int, float]:
+
+        break_time = 30 
+        workload =  { tid: 0.0 for tid in self.availability.keys()}
+        for assign in self.history:
+            hours = (assign.shift.end_time - assign.shift.start_time - break_time).total_seconds()
+
     def generate_schedule(self):
         plan = []
         working_assignments = list(self.history)
@@ -81,7 +89,7 @@ class ScheduleBuilder:
         # Sort shifts by scarcity: those with fewer eligible candidates first
         sorted_shifts = sorted(
             self.assignable_shifts.items(),
-            key=lambda x: len(eligibility.get(x[0], []))
+            key=lambda shift: len(eligibility.get(shift[0], []))
         )
 
         validators = [maxHoursValidator(), consecutiveValidator(), restValidator(), dailyAssignmentValidator()]
@@ -140,6 +148,7 @@ class ScheduleBuilder:
                     working_assignments.append(new_assignment)
 
                     shift_hours = (shift.end_time - shift.start_time).total_seconds() / 3600
+                    shift_hours -= get_break_duration(shift.shift_name)
                     workload[best_fit] += shift_hours
 
                     for validator in validators:
@@ -152,8 +161,6 @@ class ScheduleBuilder:
 
 
     
-
-
 
 class UnderstaffedShifts:
     def __init__(self, conn, assignable_shifts: dict[str, shiftSpecification], assigned_shifts: list[assignment]):
