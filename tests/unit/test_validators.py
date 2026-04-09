@@ -387,8 +387,14 @@ def test_max_hours_at_limit(make_context, make_shift, make_assignment, make_avai
     assert maxHoursValidator().can_assign_shift(context=context) is True
 
 
-def test_max_hours_over_limit(make_context, make_shift, make_assignment, make_availability):
+def test_max_hours_over_limit(make_context, 
+                              make_shift, 
+                              make_assignment, 
+                              make_availability, 
+                              start_of_week):
+    
     today = datetime.now().date()
+    start_of_week = today - timedelta(days=(today.weekday() + 1) % 7)
 
     shift_today = make_shift(
         start_time=datetime.combine(today, time(9, 0)),
@@ -397,11 +403,11 @@ def test_max_hours_over_limit(make_context, make_shift, make_assignment, make_av
 
     past_shifts = [
         make_shift(
-            start_time=datetime.combine(today - timedelta(days=i), time(9, 0)),
-            end_time=datetime.combine(today - timedelta(days=i), time(17, 30))
+            start_time=datetime.combine(start_of_week + timedelta(days=i), time(9, 0)),
+            end_time=datetime.combine(start_of_week + timedelta(days=i), time(17, 30))
         )
-        for i in range(1, 6)  # 5 past days * 8 worked hours = 40, already at contract limit
-    ]
+        for i in range(5)
+        ]
 
     past_assignments = [
         make_assignment(talent_id=1, shift_id=i, shift=shift)
