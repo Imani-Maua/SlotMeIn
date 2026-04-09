@@ -7,14 +7,14 @@ from app.core.schedule.talents.schema import talentAvailability
 
 @pytest.fixture
 def make_shift():
-    def _factory(start_time: datetime, end_time:datetime):
+    def _factory(start_time: datetime, end_time:datetime, role_count: int = 1):
         return shiftSpecification(
             template_id=1,
             start_time=start_time,
             end_time=end_time,
             shift_name="am",
             role_name= Role.SERVER,
-            role_count=1
+            role_count=role_count
         )
 
     return _factory
