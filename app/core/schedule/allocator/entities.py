@@ -54,7 +54,7 @@ class weekRange:
 
 @dataclass
 class underStaffedShifts:
-    shift_id: int
+    shift_id: str
     shift_name: str
     shift_start: datetime
     shift_end: datetime
