@@ -2,6 +2,7 @@ from datetime import timedelta
 from app.core.schedule.shifts.schema import shiftSpecification
 from app.core.schedule.talents.schema import talentAvailability
 from app.core.schedule.allocator.entities import assignment
+from app.core.schedule.allocator.engine.utils import get_break_duration
 
 
 
@@ -32,6 +33,54 @@ class computeScore:
         self.assignments = assignments
         self.workload = workload
 
+    def _score_hours_balance(self, talent_id: int) -> float:
+
+        weekly_hours = self.availability[talent_id].weeklyhours
+        
+        if self.workload is not None:
+            hours_assigned = self.workload.get(talent_id, 0.0)
+        else:
+            hours_assigned = sum(
+                (assign.shift.end_time - assign.shift.start_time).total_seconds()/3600
+                - get_break_duration(assign.shift.shift_name)
+                for assign in self.assignments if assign.talent_id == talent_id
+            )
+            
+        return weekly_hours - hours_assigned
+
+
+    def _score_streak(self, talent_id: int) -> float:
+
+        current_day = self.shift.start_time.date()
+        work_streak = 0
+
+        for day in range(1, 7):
+            prev_day = current_day - timedelta(days=day)
+            had_shift = any(assign.talent_id == talent_id and assign.shift.start_time.date() == prev_day
+                            for assign in self.assignments)
+            if had_shift:
+                work_streak += 1
+            else:
+                break
+        
+        rest_days = 6 - work_streak
+        return (rest_days * 2) - (work_streak * 2)
+    
+    def _score_rest_gap(self, talent_id: int) -> float:
+
+        yesterday = self.shift.start_time.date() - timedelta(days= 1)
+        yesterday_shift: shiftSpecification = next(
+            (assign.shift for assign in self.assignments
+            if assign.talent_id == talent_id and assign.shift.start_time.date() == yesterday), None)
+        
+        if yesterday_shift:
+            rest_hours = (self.shift.start_time - yesterday_shift.end_time).total_seconds()/3600
+            if rest_hours < 11:
+                return -5.0
+        
+        return 0.0
+
+
     def calculate_score(self, talent_id: int) -> float:
         """Calculate the score for a single talent.
 
@@ -42,48 +91,11 @@ class computeScore:
             float: A numerical score representing how suitable the talent is 
                    for the given shift. Higher is better.
         """
-        score = 0
-
-        # Remaining hours scoring
-        weekly_hours = self.availability[talent_id].weeklyhours
-        
-        if self.workload is not None:
-            hours_assigned = self.workload.get(talent_id, 0.0)
-        else:
-            hours_assigned = sum(
-                (a.shift.end_time - a.shift.start_time).total_seconds()/3600
-                for a in self.assignments if a.talent_id == talent_id
-            )
-            
-        remaining = weekly_hours - hours_assigned
-        score += remaining
-
-        
-        current_day = self.shift.start_time.date()
-        work_streak = 1
-        rest_streak = 0
-        for delta in range(1,7):
-            prev_day = current_day - timedelta(days=delta)
-            had_shift =  any(a.talent_id == talent_id and a.shift.start_time.date() == prev_day for a in self.assignments)
-            if had_shift:
-                work_streak += 1
-            else:
-                rest_streak += 1
-
-        score -= (work_streak * 2)
-        score += (rest_streak * 2)
-
-        yesterday = current_day - timedelta(days=1)
-        
-        yesterday_shift = next(
-            (a.shift for a in self.assignments if a.talent_id == talent_id and a.shift.start_time.date() == yesterday), 
-            None)
-        if yesterday_shift:
-            rest_hours = (self.shift.start_time - yesterday_shift.end_time).total_seconds()/3600
-            if rest_hours < 11:
-                score -= 5
-
-        return score
+        return (
+            self._score_hours_balance(talent_id) +
+              self._score_rest_gap(talent_id) + 
+              self._score_streak(talent_id)
+        )
 
     def getTopCandidates(self, eligible_talents: list[int]) -> list[int] | None:
         """Return the top-scoring candidates from a list of eligible talents.
@@ -99,10 +111,10 @@ class computeScore:
             return None
         
         scored = [(tid, self.calculate_score(tid)) for tid in eligible_talents]
-        scored.sort(key=lambda x: x[1], reverse=True)
+        scored.sort(key=lambda tid_score: tid_score[1], reverse=True)
 
         top_score = scored[0][1]
-        return [tid for tid, s in scored if s == top_score]
+        return [tid for tid, score in scored if score == top_score]
 
 class roundRobinPicker:
     """Round-robin picker to fairly distribute assignments among top candidates."""
@@ -125,5 +137,5 @@ class roundRobinPicker:
         idx = self.pointers.get(role, 0) % len(candidates)
         chosen = candidates[idx]
 
-        self.pointers[role] = (idx + 1) % len(candidates)
+        self.pointers[role] = self.pointers.get(role, 0) + 1
         return chosen
