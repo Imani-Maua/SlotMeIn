@@ -53,8 +53,16 @@ class computeScore:
         current_day = self.shift.start_time.date()
         work_streak = 0
 
+        STREAK_TIERS = {
+                (0, 0): 0.0,
+                (1, 2): -2.0,
+                (3, 4): -5.0,
+                (5, 6): -10.0,
+                        }
+
         for day in range(1, 7):
             prev_day = current_day - timedelta(days=day)
+
             had_shift = any(
                 assign.talent_id == talent_id and assign.shift.start_time.date() == prev_day
                 for assign in self.assignments
@@ -64,14 +72,10 @@ class computeScore:
             else:
                 break
 
-        if work_streak == 0:
-            return 0.0
-        elif work_streak <= 2:
-            return -2.0
-        elif work_streak <= 4:
-            return -5.0
-        else:
-            return -10.0
+        for (low, high), penalty in STREAK_TIERS.items():
+            if low <= work_streak <= high:
+                return penalty
+        return 0.0
     
     def _score_rest_gap(self, talent_id: int) -> float:
 
