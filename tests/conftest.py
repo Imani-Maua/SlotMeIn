@@ -1,5 +1,5 @@
 import pytest
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, time
 from app.core.schedule.shifts.schema import shiftSpecification
 from app.core.schedule.allocator.entities import assignment
 from app.core.utils.enums import Role
@@ -62,3 +62,22 @@ def make_availability():
 def start_of_week():
     today = datetime.now().date()
     return today - timedelta(days=(today.weekday() + 1) % 7)
+
+@pytest.fixture
+def base_shift(make_shift, start_of_week):
+    start = datetime.combine(start_of_week, time(9, 0))
+    return make_shift(start, start + timedelta(hours=8))
+
+@pytest.fixture
+def default_availability(make_availability):
+    """Return a helper that builds a typical SERVER availability record."""
+    def _factory(talent_id: int, weeklyhours: float = 40.0):
+        return make_availability(
+            talent_id=talent_id,
+            constraint=False,
+            role=Role.SERVER,
+            shift_name="am",
+            window={},
+            weeklyhours=weeklyhours,
+        )
+    return _factory
