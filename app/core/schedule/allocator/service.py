@@ -2,7 +2,7 @@ from app.core.schedule.shifts.schema import shiftSpecification
 from app.core.schedule.talents.schema import talentAvailability
 from app.core.schedule.allocator.entities import assignment, underStaffedShifts
 from app.core.schedule.allocator.engine.generators import TalentGenerator
-from app.core.schedule.allocator.engine.validators import maxHoursValidator, consecutiveValidator, restValidator, dailyAssignmentValidator, context
+from app.core.schedule.allocator.engine.validators import maxHoursValidator, consecutiveValidator, restValidator, dailyAssignmentValidator, context, abstractValidator
 from app.core.schedule.allocator.engine.scheduler_scoring import computeScore, roundRobinPicker
 from app.core.schedule.allocator.engine.utils import get_break_duration
 
@@ -70,56 +70,61 @@ class ScheduleBuilder:
         self.talents_to_assign = talents_to_assign
         self.history = history or  []
 
-    def _build_initial_workload_dict(self) -> dict[int, float]:
-
-        break_time = 30 
-        workload =  { tid: 0.0 for tid in self.availability.keys()}
-        for assign in self.history:
-            hours = (assign.shift.end_time - assign.shift.start_time - break_time).total_seconds()
+        
 
     def generate_schedule(self):
         plan = []
+
+        
         working_assignments = list(self.history)
 
+       
         availability_service = TalentAvailabilityService(
             self.availability, self.assignable_shifts, self.talents_to_assign
         )
+        
+        #shift_instance_id -> [talent_ids]
         eligibility = availability_service.generate_eligible_talents()
         
-        # Sort shifts by scarcity: those with fewer eligible candidates first
+        
         sorted_shifts = sorted(
             self.assignable_shifts.items(),
             key=lambda shift: len(eligibility.get(shift[0], []))
         )
 
-        validators = [maxHoursValidator(), consecutiveValidator(), restValidator(), dailyAssignmentValidator()]
         
-        # Instantiate Round Robin picker once to maintain state across shifts
+        validators = [dailyAssignmentValidator(), restValidator(), maxHoursValidator(), consecutiveValidator()]
+        
+        
         round_robin = roundRobinPicker()
 
-        # Track assigned hours per talent for efficient scoring
-        workload = {tid: 0.0 for tid in self.availability.keys()}
+        
+        workload = { tid: 0.0 for tid in self.availability.keys()}
 
+       # state space representation, dfs, bfs, graph and tree search algorithms, neural networks, reinforcement learning, theory -> 
         for shift_instance_id, shift in sorted_shifts:
+
+           
             candidates = eligibility.get(shift_instance_id, [])
             num_assigned = 0
 
-            #Build scores hashmap once per shift
+            
             scorer = computeScore(
                     shift=shift,
                     availability=self.availability,
                     assignments=working_assignments,
                     workload=workload
                 )
-            scores = {tid: scorer.calculate_score(tid) for tid in candidates}
+            scores = {tid: scorer.calculate_score(tid) for tid in candidates} 
+            remaining  = set(candidates)
+            
 
-            while num_assigned < shift.role_count and scores:
-                #Get top scorers and pick via round-robin
-
-                top_score = max(scores.values())
+            while num_assigned < shift.role_count and remaining:
+                
+                top_score = max(score for tid, score in scores.items() if tid in remaining)
                 top_candidates = [
-                    tid for tid, score in scores.items()
-                    if score == top_score
+                    tid for tid, score in remaining 
+                    if scores[tid] == top_score
                 ]
 
                 best_fit = round_robin.pickBestFit(shift.role_name, top_candidates)
@@ -127,16 +132,12 @@ class ScheduleBuilder:
                 if best_fit is None:
                     break
 
-                #drop the best_fit from the pool regardless of outcome - we have made a decision at this point
+                remaining.discard(best_fit)                
 
-
-                del scores[best_fit]                
-
-                if shift.shift_name not in self.availability[best_fit].shift_name:
-                    continue
+                
 
                 ctx = context.contextFinder(best_fit, shift, self.availability, working_assignments)
-
+                
                 if all(validator.can_assign_shift(ctx) for validator in validators):
                     new_assignment = assignment(
                         talent_id=best_fit,
