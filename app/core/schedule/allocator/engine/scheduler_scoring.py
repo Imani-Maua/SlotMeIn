@@ -36,35 +36,42 @@ class computeScore:
     def _score_hours_balance(self, talent_id: int) -> float:
 
         weekly_hours = self.availability[talent_id].weeklyhours
-        
-        if self.workload is not None:
-            hours_assigned = self.workload.get(talent_id, 0.0)
-        else:
-            hours_assigned = sum(
-                (assign.shift.end_time - assign.shift.start_time).total_seconds()/3600
-                - get_break_duration(assign.shift.shift_name)
-                for assign in self.assignments if assign.talent_id == talent_id
-            )
+        hours_assigned = self.workload.get(talent_id, 0.0)
             
         return weekly_hours - hours_assigned
 
 
     def _score_streak(self, talent_id: int) -> float:
+        """Score a talent based on their consecutive work streak.
 
+        Tiers (penalties only — no streak is neutral, not rewarded):
+            0 days  →  0.0   (no penalty)
+            1–2 days → -2.0  (minor preference against)
+            3–4 days → -5.0  (moderate — same weight as a rest gap violation)
+            5–6 days → -10.0 (strong — nearing the legal maximum, heavily prefer others)
+        """
         current_day = self.shift.start_time.date()
         work_streak = 0
 
         for day in range(1, 7):
             prev_day = current_day - timedelta(days=day)
-            had_shift = any(assign.talent_id == talent_id and assign.shift.start_time.date() == prev_day
-                            for assign in self.assignments)
+            had_shift = any(
+                assign.talent_id == talent_id and assign.shift.start_time.date() == prev_day
+                for assign in self.assignments
+            )
             if had_shift:
                 work_streak += 1
             else:
                 break
-        
-        rest_days = 6 - work_streak
-        return (rest_days * 2) - (work_streak * 2)
+
+        if work_streak == 0:
+            return 0.0
+        elif work_streak <= 2:
+            return -2.0
+        elif work_streak <= 4:
+            return -5.0
+        else:
+            return -10.0
     
     def _score_rest_gap(self, talent_id: int) -> float:
 
