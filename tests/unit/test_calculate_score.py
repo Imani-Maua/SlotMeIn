@@ -107,7 +107,7 @@ class TestCalculateScore:
     ):
         """A shift 7 days ago is outside the look-back window and must not affect streaks."""
         availability = {1: default_availability(1)}
-        
+
         old_day = datetime.combine(start_of_week - timedelta(days=7), time(9,0))
         old_shift = make_shift(old_day, old_day + timedelta(hours=8))
         old_assignment = [make_assignment(1, shift_id=77, shift=old_shift)]
@@ -120,3 +120,57 @@ class TestCalculateScore:
         ).calculate_score(1)
  
         assert score_with_old == pytest.approx(score_clean, abs=0.01)
+    
+    def test_less_than_11h_rest_incurs_penalty(
+        self, default_availability, make_shift, make_assignment, start_of_week
+    ):
+        """< 11 h between yesterday's end and today's start → -5 rest-gap penalty.
+
+        Setup: target shift starts Sunday at 09:00.
+               yesterday's shift (Saturday) ends at 23:00 → only 10 h of rest.
+        """
+        availability = {1: default_availability(1)}
+
+        target_shift_start = datetime.combine(start_of_week, time(9, 0))
+        target_shift = make_shift(target_shift_start, target_shift_start + timedelta(hours=8))
+
+        # Saturday: shift ends at 23:00 — only 10 hours before Sunday 09:00
+        yesterday_date = start_of_week - timedelta(days=1)
+        yesterday_shift_end = datetime.combine(yesterday_date, time(23, 0))
+        yesterday_shift_start = yesterday_shift_end - timedelta(hours=8)
+        yesterday_shift = make_shift(yesterday_shift_start, yesterday_shift_end)
+        assignments = [make_assignment(1, shift_id=50, shift=yesterday_shift)]
+
+        score = computeScore(
+            target_shift, availability, assignments, workload={1: 0.0}
+        ).calculate_score(1)
+
+        # hours_balance = 40.0, streak (1 day) = -2.0, rest_gap (<11h) = -5.0
+        assert score == pytest.approx(40 - 2 - 5, abs=0.01)
+
+    def test_sufficient_rest_returns_no_penalty(
+        self, default_availability, make_shift, make_assignment, start_of_week
+    ):
+        """≥ 11 h between yesterday's end and today's start → no rest-gap penalty.
+
+        Setup: target shift starts Sunday at 09:00.
+               yesterday's shift (Saturday) ends at 22:00 → exactly 11 h of rest.
+        """
+        availability = {1: default_availability(1)}
+
+        target_shift_start = datetime.combine(start_of_week, time(9, 0))
+        target_shift = make_shift(target_shift_start, target_shift_start + timedelta(hours=8))
+
+        # Saturday: shift ends at 22:00 — exactly 11 hours before Sunday 09:00
+        yesterday_date = start_of_week - timedelta(days=1)
+        yesterday_shift_end = datetime.combine(yesterday_date, time(22, 0))
+        yesterday_shift_start = yesterday_shift_end - timedelta(hours=8)
+        yesterday_shift = make_shift(yesterday_shift_start, yesterday_shift_end)
+        assignments = [make_assignment(1, shift_id=51, shift=yesterday_shift)]
+
+        score = computeScore(
+            target_shift, availability, assignments, workload={1: 0.0}
+        ).calculate_score(1)
+
+        # hours_balance = 40.0, streak (1 day) = -2.0, rest_gap (≥11h) = 0.0
+        assert score == pytest.approx(40 - 2 - 0, abs=0.01)
