@@ -35,5 +35,14 @@ def talent_eligible_for_shift(talent:talentAvailability, shift: shiftSpecificati
     return False
 
 
-def history_hours(talent_id: int, week_start:date, history:list) -> float:
-    pass
+def find_last_shift_end(talent_id: int, on_date: date, history:list[assignment]):
+    for assignment in history:
+        if assignment.talent_id == talent_id and assignment.shift.start_time.date() == on_date:
+            return assignment.shift.end_time
+    return None
+
+def days_worked_in_history(talent_id: int, history: list[assignment]) -> set:
+    return {assign.shift.start_time.date() for assign in history if assign.talent_id == talent_id}
+
+def week_start_for_date(dt: date) -> date:
+    return dt - timedelta(days=(dt.weekday() + 1) % 7 )
