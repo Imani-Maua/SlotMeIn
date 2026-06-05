@@ -9,7 +9,7 @@ def shift_duration_hours(shift: shiftSpecification) -> float:
     return raw - get_break_duration(shift.shift_name)
 
 
-def talent_eligible_for_Shift(talent:talentAvailability, shift: shiftSpecification):
+def talent_eligible_for_shift(talent:talentAvailability, shift: shiftSpecification):
     if talent.role != shift.role_name:
         return False
     
