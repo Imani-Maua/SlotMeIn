@@ -118,3 +118,35 @@ class CSPScheduler:
                 ]
                 if date_vars:
                     model.add(sum(date_vars) <= 1)
+        
+         # ---------------------------------------------------------------
+        # Constraint Four: restValidator → 11-hour rest between days (hard)
+        # ---------------------------------------------------------------
+        for tid in talent_ids:
+            for sid in shift_ids:
+                shift = self.assignable_shifts[sid]
+                if sid not in assigned.get(tid, {}):
+                    continue
+                
+                shift_date = shift.start_time.date()
+                prev_date = shift_date - timedelta(days=1)
+                prev_date_shift_end = find_last_shift_end(talent_id=tid, on_date=prev_date, history=self.history)
+
+
+                if prev_date_shift_end is None:
+                    for prev_sid in shifts_by_date.get(prev_date, []):
+                        if prev_sid not in assigned.get(tid, {}):
+                            continue
+
+                        prev_shift = self.assignable_shifts[prev_sid]
+                        rest = (shift.start_time - prev_shift.end_time).total_seconds()/ 3600
+
+                        if rest < MIN_REST_HOURS:
+                            model.add(assigned[tid][sid] + assigned[tid][prev_sid] <= 1)
+                        
+                else:
+                    rest = (shift.start_time - prev_shift.end_time).total_seconds()/ 3600
+                    if rest < MIN_REST_HOURS:
+                        model.add(assigned[tid][sid] == 0)
+
+
