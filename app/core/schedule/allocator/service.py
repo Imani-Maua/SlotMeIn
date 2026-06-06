@@ -4,6 +4,7 @@ from app.core.schedule.allocator.entities import assignment
 from app.core.schedule.allocator.engine.utils import get_break_duration
 from ortools.sat.python import cp_model
 from datetime import timedelta, date, datetime
+from app.core.schedule.allocator.utils import talent_eligible_for_shift, is_talent_assigned, group_shifts_by_date, find_last_shift_end
 
 
 MIN_REST_HOURS = 11
@@ -15,8 +16,47 @@ OVERWORK_THRESHOLD = 1.15
 
 #Objective weights
 
-
+CONSTRAINED_FILL_BONUS = 50
 FILL_WEIGHT = 200 #reward per filled slot
 UNDERWORK_PENALTY = 80     #Penalty per centihour below contracted hours
 MILD_OVERWORK_PENALTY = 20 #Penalty per centihour in acceptable overwork band
 STEEP_OVERWORK_PENALTY = 100 #penalty per centihour in excessive overwork band 
+
+
+class CSPScheduler:
+
+    def __init__(self, availability: dict[int, talentAvailability], 
+                 assignable_shifts: dict[int, shiftSpecification],
+                 talents_to_assign,
+                 history: list[assignment] = None):
+        
+        self.availability = availability
+        self.assignable_shifts = assignable_shifts
+        self.talents_to_assign = talents_to_assign
+        self.history = history or []
+
+    def generate_schedule(self) -> list[assignment]:
+
+
+        model = cp_model.CpModel()
+        shift_ids = list(self.assignable_shifts.keys())
+        talent_ids = list(self.availability.keys())
+
+        # ----------------------------------------------------------
+        # Decision variables
+        # slot_assignments[tid][sid][slot] ∈ {0,1}  — 1 = talent fills slot
+        # ----------------------------------------------------------
+
+        slot_assignments = {}
+        for tid in talent_ids:
+            slot_assignments[tid] = {}
+            for sid in shift_ids:
+                shift = self.assignable_shifts[sid]
+                talent = self.availability[tid]
+                slot_assignments[tid][sid] = {}
+                if talent_eligible_for_shift(talent, shift):
+                    for slot in range(shift.role_count):
+                        slot_assignments[tid][sid][slot] = model.new_bool_var(f"slot_assignments_for_talent{tid}_to_shift{sid}_for_slot{slot}")
+        
+
+      
