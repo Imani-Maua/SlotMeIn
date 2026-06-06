@@ -1,8 +1,10 @@
+from datetime import timedelta, date, datetime
+from ortools.sat.python import cp_model
 from app.core.schedule.shifts.schema import shiftSpecification
 from app.core.schedule.talents.schema import talentAvailability
 from app.core.schedule.allocator.entities import assignment
 from app.core.schedule.allocator.engine.utils import get_break_duration
-from datetime import timedelta, date, datetime
+
 
 def shift_duration_hours(shift: shiftSpecification) -> float:
     raw = (shift.end_time - shift.start_time).total_seconds/3600
@@ -55,4 +57,25 @@ def group_shifts_by_date(shift_ids: list[int], assignable_shifts:dict[int, shift
         shifts_by_date.setdefault(shift_date, []).append(sid)
     
     return shifts_by_date
+
+def is_talent_assigned(talent_ids: list[int], 
+                       shift_ids: list[int], 
+                       assignable_shifts: dict[int, shiftSpecification],
+                       slot_assignments: dict,
+                       model: cp_model.CpModel):
+    assigned = {}
+    for tid in talent_ids:
+        assigned[tid] = {}
+        for sid in shift_ids:
+            shift = assignable_shifts[sid]
+            talent_slots = [
+                slot_assignments[tid][sid][slot]
+                for slot in range(shift.role_count)
+                if slot in slot_assignments.get(sid, {})
+            ]
+            if talent_slots:
+                talent_works_shift = model.new_bool_var(f"assigned_talent{tid}_shift{sid}")
+                model.add(sum(talent_slots) == talent_works_shift)
+                assigned[tid][sid] = talent_works_shift
+    return assigned
 
