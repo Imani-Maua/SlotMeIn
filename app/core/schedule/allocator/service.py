@@ -73,3 +73,18 @@ class CSPScheduler:
                 ]
                 if slot_vars:
                     model.add(sum(slot_vars) <= 1)
+        
+         # ----------------------------------------------------------
+        # Constraint Two: Each talent fills at most 1 slot per shift instance
+        # ----------------------------------------------------------
+
+        for tid in talent_ids:
+            for sid in shift_ids:
+                shift = self.assignable_shifts[sid]
+                talent_slots = [
+                    slot_assignments[tid][sid][slot]
+                    for slot in range(shift.role_count)
+                    if slot in slot_assignments[tid].get(sid, {})
+                ]
+                if len(talent_slots) > 1:
+                    model.add(sum(talent_slots) <= 1)
