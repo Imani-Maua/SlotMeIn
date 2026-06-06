@@ -59,4 +59,17 @@ class CSPScheduler:
                         slot_assignments[tid][sid][slot] = model.new_bool_var(f"slot_assignments_for_talent{tid}_to_shift{sid}_for_slot{slot}")
         
 
-      
+      # ----------------------------------------------------------
+        # Constraint One: Each slot filled by at most one talent
+        # ----------------------------------------------------------
+
+        for sid in shift_ids:
+            shift = self.assignable_shifts[sid]
+            for slot in range(shift.role_count):
+                slot_vars = [
+                    slot_assignments[tid][sid][slot]
+                    for tid in talent_ids
+                    if slot in slot_assignments[tid].get(sid, {})
+                ]
+                if slot_vars:
+                    model.add(sum(slot_vars) <= 1)
