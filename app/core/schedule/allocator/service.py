@@ -88,3 +88,19 @@ class CSPScheduler:
                 ]
                 if len(talent_slots) > 1:
                     model.add(sum(talent_slots) <= 1)
+          # ----------------------------------------------------------
+        # Convenience indicator: assigned[tid][sid] = 1 if talent works shift otherwise 0
+        # ----------------------------------------------------------
+
+        assigned = {}
+        for tid in talent_ids:
+            assigned[tid] = {}
+            for sid in shift_ids:
+                shift = self.assignable_shifts[sid]
+                talent_slots = [
+                    slot_assignments[tid][sid][slot]
+                    for slot in range(shift.role_count)
+                    if slot in slot_assignments[tid.get(sid, {})]
+                ]
+                if talent_slots:
+                    assigned[tid][sid] = is_talent_assigned(talent_id=tid, shift_id=sid, talent_slots=talent_slots, model=model)
