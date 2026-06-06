@@ -119,7 +119,7 @@ class CSPScheduler:
                 if date_vars:
                     model.add(sum(date_vars) <= 1)
         
-         # ---------------------------------------------------------------
+        # ---------------------------------------------------------------
         # Constraint Four: restValidator → 11-hour rest between days (hard)
         # ---------------------------------------------------------------
         for tid in talent_ids:
@@ -148,5 +148,21 @@ class CSPScheduler:
                     rest = (shift.start_time - prev_shift.end_time).total_seconds()/ 3600
                     if rest < MIN_REST_HOURS:
                         model.add(assigned[tid][sid] == 0)
+        
+        # ---------------------------------------------------------------
+        # Constraint Five: constrained talents first
+        # ---------------------------------------------------------------
+
+        # this is implicitly enforced by MRV within the model, but the system needs a 
+        # guarantee that constrained talents are going to be filled first
+        fill_term_bonus = []
+        for tid in talent_ids:
+            talent = self.availability[tid]
+            if talent.constraint:
+                for sid in shift_ids:
+                    for slot in range(self.assignable_shifts[sid].role_count):
+                        if slot in slot_assignments[tid].get(sid, {}):
+                            fill_term_bonus.append(slot_assignments[tid][sid][slot])
+
 
 
