@@ -104,3 +104,6 @@ class CSPScheduler:
                 ]
                 if talent_slots:
                     assigned[tid][sid] = is_talent_assigned(talent_id=tid, shift_id=sid, talent_slots=talent_slots, model=model)
+        
+        shifts_by_date = group_shifts_by_date(shift_ids=shift_ids, assignable_shifts=self.assignable_shifts)
+        
