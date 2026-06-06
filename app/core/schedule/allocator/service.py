@@ -106,4 +106,15 @@ class CSPScheduler:
                     assigned[tid][sid] = is_talent_assigned(talent_id=tid, shift_id=sid, talent_slots=talent_slots, model=model)
         
         shifts_by_date = group_shifts_by_date(shift_ids=shift_ids, assignable_shifts=self.assignable_shifts)
-        
+        # ---------------------------------------------------------------
+        # Constraint Three: dailyAssignmentValidator → 1 shift per talent per day (hard)
+        # ---------------------------------------------------------------
+        for tid in talent_ids:
+            for _, date_sids in shifts_by_date.items():
+                date_vars = [
+                    assigned[tid][sid]
+                    for sid in date_sids
+                    if sid in assigned.get(tid, {})
+                ]
+                if date_vars:
+                    model.add(sum(date_vars) <= 1)
