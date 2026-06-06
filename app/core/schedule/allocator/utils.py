@@ -46,3 +46,13 @@ def days_worked_in_history(talent_id: int, history: list[assignment]) -> set:
 
 def week_start_for_date(dt: date) -> date:
     return dt - timedelta(days=(dt.weekday() + 1) % 7 )
+
+
+def group_shifts_by_date(shift_ids: list[int], assignable_shifts:dict[int, shiftSpecification]):
+    shifts_by_date: dict[date, list] = {}
+    for sid in shift_ids:
+        shift_date = assignable_shifts[sid].start_time.date()
+        shifts_by_date.setdefault(shift_date, []).append(sid)
+    
+    return shifts_by_date
+
