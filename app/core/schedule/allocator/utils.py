@@ -58,24 +58,11 @@ def group_shifts_by_date(shift_ids: list[int], assignable_shifts:dict[int, shift
     
     return shifts_by_date
 
-def is_talent_assigned(talent_ids: list[int], 
-                       shift_ids: list[int], 
-                       assignable_shifts: dict[int, shiftSpecification],
-                       slot_assignments: dict,
+def is_talent_assigned(talent_id: int,
+                       shift_id: int,
+                       talent_slots: list,
                        model: cp_model.CpModel):
-    assigned = {}
-    for tid in talent_ids:
-        assigned[tid] = {}
-        for sid in shift_ids:
-            shift = assignable_shifts[sid]
-            talent_slots = [
-                slot_assignments[tid][sid][slot]
-                for slot in range(shift.role_count)
-                if slot in slot_assignments.get(sid, {})
-            ]
-            if talent_slots:
-                talent_works_shift = model.new_bool_var(f"assigned_talent{tid}_shift{sid}")
-                model.add(sum(talent_slots) == talent_works_shift)
-                assigned[tid][sid] = talent_works_shift
-    return assigned
+   is_assigned = model.new_bool_var(f"assigned_talent{talent_id}_shift{shift_id}")
+   model.add(sum(talent_slots) == is_assigned) 
+   return is_assigned
 
