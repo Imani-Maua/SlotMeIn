@@ -193,3 +193,49 @@ class CSPScheduler:
                     day_indicators[tid][day_date] = indicator
         
         
+        for tid in talent_ids:
+            history_dates = days_worked_in_history(tid, self.history)
+            streak = 0
+
+            if first_date:
+                day_in_streak = first_date - timedelta(days=1)
+                while day_in_streak in history_dates:
+                    streak += 1
+                    day_in_streak -= timedelta(days=1)
+            
+            if first_date is None:
+                continue
+
+            window_start = first_date - timedelta(days=streak)
+
+            last_date = all_dates[-1]
+
+            current = window_start
+            while current <= last_date:
+                window_dates = [current + timedelta(days=day) for day in range(7)]
+ 
+                window_solver_vars = []
+                fixed_days_worked  = 0
+ 
+                for window in window_dates:
+                    if window in history_dates:
+                        # Fixed fact — counts as 1 worked day
+                        fixed_days_worked += 1
+                    elif window in day_indicators[tid]:
+                        # Solver variable — undecided
+                        window_solver_vars.append(day_indicators[tid][window])
+                    # else: no shift on this date, contributes 0
+ 
+                # Total days worked in window =
+                #   fixed_days_worked + sum(window_solver_vars)
+                # This must not exceed MAX_CONSECUTIVE_DAYS (6)
+                remaining = MAX_CONSECUTIVE_DAYS - fixed_days_worked
+                if remaining <= 0:
+                    # History alone already fills the window —
+                    # block all solver days in this window
+                    for vars in window_solver_vars:
+                        model.add(vars == 0)
+                elif window_solver_vars:
+                    model.add(sum(window_solver_vars) <= remaining)
+ 
+                current += timedelta(days=1)
