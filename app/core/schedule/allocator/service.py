@@ -4,7 +4,11 @@ from app.core.schedule.allocator.entities import assignment
 from app.core.schedule.allocator.engine.utils import get_break_duration
 from ortools.sat.python import cp_model
 from datetime import timedelta, date, datetime
-from app.core.schedule.allocator.utils import talent_eligible_for_shift, is_talent_assigned, group_shifts_by_date, find_last_shift_end
+from app.core.schedule.allocator.utils import (talent_eligible_for_shift, 
+                                               is_talent_assigned, 
+                                               group_shifts_by_date, 
+                                               find_last_shift_end,
+                                               days_worked_in_history)
 
 
 MIN_REST_HOURS = 11
@@ -163,6 +167,29 @@ class CSPScheduler:
                     for slot in range(self.assignable_shifts[sid].role_count):
                         if slot in slot_assignments[tid].get(sid, {}):
                             fill_term_bonus.append(slot_assignments[tid][sid][slot])
+        
+
+        # ---------------------------------------------------------------
+        # Constraint Six: max 6 consecutive days
+        # ---------------------------------------------------------------
+        all_dates = sorted(shifts_by_date.keys())
+        first_date = all_dates[0] if all_dates else None
 
 
+        day_indicators: dict[int, dict[date, cp_model.IntVar]] = {}
 
+
+        for tid in talent_ids:
+            day_indicators[tid] = {}
+            for day_date in all_dates:
+                day_vars = [
+                    assigned[tid][sid]
+                    for sid in shifts_by_date.get(day_date, [])
+                    if sid in assigned.get(tid, [])
+                ]
+                if day_vars:
+                    indicator = model.new_bool_var(f"talent_{tid}works_date{day_date.isoformat()}")
+                    model.add(sum(day_vars) == indicator)
+                    day_indicators[tid][day_date] = indicator
+        
+        
