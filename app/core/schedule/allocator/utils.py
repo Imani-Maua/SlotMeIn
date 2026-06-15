@@ -3,7 +3,8 @@ from ortools.sat.python import cp_model
 from app.core.schedule.shifts.schema import shiftSpecification
 from app.core.schedule.talents.schema import talentAvailability
 from app.core.schedule.allocator.entities import assignment
-from app.core.schedule.allocator.engine.utils import get_break_duration
+
+from app.core.utils.enums import Shifts
 
 
 def shift_duration_hours(shift: shiftSpecification) -> float:
@@ -65,4 +66,15 @@ def is_talent_assigned(talent_id: int,
    is_assigned = model.new_bool_var(f"assigned_talent{talent_id}_shift{shift_id}")
    model.add(sum(talent_slots) == is_assigned) 
    return is_assigned
+
+def get_break_duration(shift_name:str):
+
+    shift_name = shift_name.lower()
+    break_duration = {
+        Shifts.AM.value: 0.5,
+        Shifts.PM.value: 0.5,
+        Shifts.LOUNGE.value: 0.5
+    }
+
+    return break_duration.get(shift_name, 0.5)
 
