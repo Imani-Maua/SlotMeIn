@@ -78,3 +78,12 @@ def get_break_duration(shift_name:str):
 
     return break_duration.get(shift_name, 0.5)
 
+
+def week_start_for_date(day_date: date) -> date:
+    return day_date - timedelta(days=(day_date.weekday() + 1) % 7)
+
+
+def shift_duration_hours(shift: shiftSpecification) -> float:
+    raw = (shift.end_time - shift.start_time).total_seconds() / 3600
+    return raw - get_break_duration(shift.shift_name)
+
