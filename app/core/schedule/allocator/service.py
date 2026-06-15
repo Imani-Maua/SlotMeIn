@@ -1,7 +1,7 @@
 from app.core.schedule.shifts.schema import shiftSpecification
 from app.core.schedule.talents.schema import talentAvailability
 from app.core.schedule.allocator.entities import assignment
-from app.core.schedule.allocator.engine.utils import get_break_duration
+from app.core.schedule.allocator.utils import get_break_duration
 from ortools.sat.python import cp_model
 from datetime import timedelta, date, datetime
 from app.core.schedule.allocator.utils import (talent_eligible_for_shift, 
@@ -38,14 +38,8 @@ class CSPScheduler:
         self.assignable_shifts = assignable_shifts
         self.talents_to_assign = talents_to_assign
         self.history = history or []
-
-    def generate_schedule(self) -> list[assignment]:
-
-
-        model = cp_model.CpModel()
-        shift_ids = list(self.assignable_shifts.keys())
-        talent_ids = list(self.availability.keys())
-
+    
+    def _build_variables(self, model: cp_model.CpModel, shift_ids: list[int], talent_ids: list[int]) -> dict[int, dict[int, dict[int, cp_model.IntVar]]]:
         # ----------------------------------------------------------
         # Decision variables
         # slot_assignments[tid][sid][slot] ∈ {0,1}  — 1 = talent fills slot
@@ -61,12 +55,16 @@ class CSPScheduler:
                 if talent_eligible_for_shift(talent, shift):
                     for slot in range(shift.role_count):
                         slot_assignments[tid][sid][slot] = model.new_bool_var(f"slot_assignments_for_talent{tid}_to_shift{sid}_for_slot{slot}")
-        
-
-      # ----------------------------------------------------------
+        return slot_assignments
+    
+    def _build_constraints(self, model: cp_model.CpModel, 
+                           shift_ids: list[int],
+                           talent_ids: list[int], 
+                           slot_assignments: dict[int, dict[int, dict[int, cp_model.IntVar]]],
+                           is_assigned: dict[int, dict[int, cp_model.IntVar]]):
+        # ----------------------------------------------------------
         # Constraint One: Each slot filled by at most one talent
         # ----------------------------------------------------------
-
         for sid in shift_ids:
             shift = self.assignable_shifts[sid]
             for slot in range(shift.role_count):
@@ -92,44 +90,28 @@ class CSPScheduler:
                 ]
                 if len(talent_slots) > 1:
                     model.add(sum(talent_slots) <= 1)
-          # ----------------------------------------------------------
-        # Convenience indicator: assigned[tid][sid] = 1 if talent works shift otherwise 0
-        # ----------------------------------------------------------
 
-        assigned = {}
-        for tid in talent_ids:
-            assigned[tid] = {}
-            for sid in shift_ids:
-                shift = self.assignable_shifts[sid]
-                talent_slots = [
-                    slot_assignments[tid][sid][slot]
-                    for slot in range(shift.role_count)
-                    if slot in slot_assignments[tid.get(sid, {})]
-                ]
-                if talent_slots:
-                    assigned[tid][sid] = is_talent_assigned(talent_id=tid, shift_id=sid, talent_slots=talent_slots, model=model)
-        
-        shifts_by_date = group_shifts_by_date(shift_ids=shift_ids, assignable_shifts=self.assignable_shifts)
         # ---------------------------------------------------------------
         # Constraint Three: dailyAssignmentValidator → 1 shift per talent per day (hard)
         # ---------------------------------------------------------------
+        shifts_by_date = group_shifts_by_date(shift_ids=shift_ids, assignable_shifts=self.assignable_shifts)
         for tid in talent_ids:
             for _, date_sids in shifts_by_date.items():
                 date_vars = [
-                    assigned[tid][sid]
+                    is_assigned[tid][sid]
                     for sid in date_sids
-                    if sid in assigned.get(tid, {})
+                    if sid in is_assigned.get(tid, {})
                 ]
                 if date_vars:
                     model.add(sum(date_vars) <= 1)
         
-        # ---------------------------------------------------------------
+         # ---------------------------------------------------------------
         # Constraint Four: restValidator → 11-hour rest between days (hard)
         # ---------------------------------------------------------------
         for tid in talent_ids:
             for sid in shift_ids:
                 shift = self.assignable_shifts[sid]
-                if sid not in assigned.get(tid, {}):
+                if sid not in is_assigned.get(tid, {}):
                     continue
                 
                 shift_date = shift.start_time.date()
@@ -139,21 +121,20 @@ class CSPScheduler:
 
                 if prev_date_shift_end is None:
                     for prev_sid in shifts_by_date.get(prev_date, []):
-                        if prev_sid not in assigned.get(tid, {}):
+                        if prev_sid not in is_assigned.get(tid, {}):
                             continue
 
                         prev_shift = self.assignable_shifts[prev_sid]
                         rest = (shift.start_time - prev_shift.end_time).total_seconds()/ 3600
 
                         if rest < MIN_REST_HOURS:
-                            model.add(assigned[tid][sid] + assigned[tid][prev_sid] <= 1)
+                            model.add(is_assigned[tid][sid] + is_assigned[tid][prev_sid] <= 1)
                         
                 else:
                     rest = (shift.start_time - prev_shift.end_time).total_seconds()/ 3600
                     if rest < MIN_REST_HOURS:
-                        model.add(assigned[tid][sid] == 0)
-        
-        # ---------------------------------------------------------------
+                        model.add(is_assigned[tid][sid] == 0)
+         # ---------------------------------------------------------------
         # Constraint Five: constrained talents first
         # ---------------------------------------------------------------
 
@@ -183,9 +164,9 @@ class CSPScheduler:
             day_indicators[tid] = {}
             for day_date in all_dates:
                 day_vars = [
-                    assigned[tid][sid]
+                    is_assigned[tid][sid]
                     for sid in shifts_by_date.get(day_date, [])
-                    if sid in assigned.get(tid, [])
+                    if sid in is_assigned.get(tid, [])
                 ]
                 if day_vars:
                     indicator = model.new_bool_var(f"talent_{tid}works_date{day_date.isoformat()}")
@@ -239,3 +220,34 @@ class CSPScheduler:
                     model.add(sum(window_solver_vars) <= remaining)
  
                 current += timedelta(days=1)
+        
+
+    def _convenience_methods(self, slot_assignments: dict[int, dict[int, dict[int, cp_model.IntVar]]], model: cp_model.CpModel) -> dict[int, dict[int, cp_model.IntVar]]:
+        # This is not a constraint, but it is a convenient way to refer to whether a talent is assigned to a shift anywhere in the model
+        # It allows us to easily apply penalties/rewards in the objective function based on whether a talent is working a shift, without having to sum over all their slots every time
+        assigned = {}
+        for tid in self.availability.keys():
+            assigned[tid] = {}
+            for sid in self.assignable_shifts.keys():
+                talent_slots = [
+                    slot_assignments[tid][sid][slot]
+                    for slot in range(self.assignable_shifts[sid].role_count)
+                    if slot in slot_assignments[tid].get(sid, {})
+                ]
+                if talent_slots:
+                    assigned[tid][sid] = model.new_bool_var(f"assigned_talent{tid}_shift{sid}")
+                    model.add(sum(talent_slots) == assigned[tid][sid])
+        return assigned
+
+
+    def generate_schedule(self) -> list[assignment]:
+
+
+        model = cp_model.CpModel()
+        shift_ids = list(self.assignable_shifts.keys())
+        talent_ids = list(self.availability.keys())
+
+
+        
+       
+       
