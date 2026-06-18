@@ -3,6 +3,9 @@ from app.core.schedule.talents.schema import talentAvailability
 from app.core.schedule.allocator.entities import assignment
 from app.core.schedule.allocator.utils import get_break_duration
 from ortools.sat.python import cp_model
+import logging
+
+logger = logging.getLogger(__name__)
 from datetime import timedelta, date
 from app.core.schedule.allocator.utils import (talent_eligible_for_shift, 
                                                group_shifts_by_date, 
@@ -327,7 +330,7 @@ class CSPScheduler:
                 penalty_terms.append(MILD_OVERWORK_PENALTY  * mild_excess)
                 penalty_terms.append(STEEP_OVERWORK_PENALTY * steep_excess)
 
-                model.maximize(FILL_WEIGHT * sum(fill_terms) - sum(penalty_terms))
+        model.maximize(FILL_WEIGHT * sum(fill_terms) - sum(penalty_terms))
 
 
     def generate_schedule(self) -> list[assignment]:
@@ -353,7 +356,13 @@ class CSPScheduler:
         solver = cp_model.CpSolver()
         status = solver.solve(model)
 
-        if status not in (cp_model.OPTIMAL, cp_model.FEASIBLE):
+        status_name = solver.status_name(status)
+        if status == cp_model.OPTIMAL:
+            logger.info("Solver found optimal solution (objective=%.2f)", solver.objective_value)
+        elif status == cp_model.FEASIBLE:
+            logger.warning("Solver returned feasible but not optimal solution (objective=%.2f)", solver.objective_value)
+        else:
+            logger.error("Solver failed with status: %s;  returning empty schedule", status_name)
             return []
         
         all_assignments = []
