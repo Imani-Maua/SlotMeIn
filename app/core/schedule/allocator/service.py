@@ -132,7 +132,7 @@ class CSPScheduler:
                             model.add(is_assigned[tid][sid] + is_assigned[tid][prev_sid] <= 1)
                         
                 else:
-                    rest = (shift.start_time - prev_shift.end_time).total_seconds()/ 3600
+                    rest = (shift.start_time - prev_date_shift_end).total_seconds()/ 3600
                     if rest < MIN_REST_HOURS:
                         model.add(is_assigned[tid][sid] == 0)
          # ---------------------------------------------------------------
@@ -327,12 +327,47 @@ class CSPScheduler:
                 penalty_terms.append(MILD_OVERWORK_PENALTY  * mild_excess)
                 penalty_terms.append(STEEP_OVERWORK_PENALTY * steep_excess)
 
+                model.maximize(FILL_WEIGHT * sum(fill_terms) - sum(penalty_terms))
+
 
     def generate_schedule(self) -> list[assignment]:
 
         model = cp_model.CpModel()
         shift_ids = list(self.assignable_shifts.keys())
         talent_ids = list(self.availability.keys())
+
+        slot_assignments = self._build_variables(model=model, shift_ids=shift_ids, talent_ids=talent_ids)
+        assigned = self._convenience_methods(slot_assignments=slot_assignments, model=model)
+        self._build_constraints(model=model, 
+                                shift_ids=shift_ids, 
+                                talent_ids=talent_ids, 
+                                slot_assignments=slot_assignments, 
+                                is_assigned=assigned)
+        
+        self._build_objective(model=model, 
+                              assigned=assigned,
+                              shift_ids=shift_ids,
+                              talent_ids=talent_ids,
+                              slot_assignments=slot_assignments)
+        
+        solver = cp_model.CpSolver()
+        status = solver.solve(model)
+
+        if status not in (cp_model.OPTIMAL, cp_model.FEASIBLE):
+            return []
+        
+        all_assignments = []
+        for tid in talent_ids:
+            for sid in shift_ids:
+                if sid in assigned.get(tid, {}) and solver.value(assigned[tid][sid]) == 1:
+                    all_assignments.append(assignment(
+                        talent_id=tid,
+                        shift_id=sid,
+                        shift = self.assignable_shifts[sid]
+                    ))
+        
+        return all_assignments
+
 
 
         
