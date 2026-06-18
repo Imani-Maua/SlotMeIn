@@ -3,12 +3,13 @@ from app.core.schedule.talents.schema import talentAvailability
 from app.core.schedule.allocator.entities import assignment
 from app.core.schedule.allocator.utils import get_break_duration
 from ortools.sat.python import cp_model
-from datetime import timedelta, date, datetime
+from datetime import timedelta, date
 from app.core.schedule.allocator.utils import (talent_eligible_for_shift, 
-                                               is_talent_assigned, 
                                                group_shifts_by_date, 
                                                find_last_shift_end,
-                                               days_worked_in_history)
+                                               days_worked_in_history,
+                                               week_start_for_date,
+                                               shift_duration_hours)
 
 
 MIN_REST_HOURS = 11
@@ -238,10 +239,96 @@ class CSPScheduler:
                     assigned[tid][sid] = model.new_bool_var(f"assigned_talent{tid}_shift{sid}")
                     model.add(sum(talent_slots) == assigned[tid][sid])
         return assigned
+    
+    def _build_objective(self, 
+                          model: cp_model.CpModel, 
+                          assigned: dict[int, dict[int, cp_model.IntVar]],
+                          shift_ids: list[int],
+                          talent_ids: list[int],
+                          slot_assignments: dict[int, dict[int, dict[int, cp_model.IntVar]]]) -> list[assignment]:
+        
+        
+        # Collect every single slot assignment variable into a single flat list. 
+        # Variables in fill-terms are either a 0 or 1 decision that the solver is going to make.
+        fill_terms = []
+        for sid in shift_ids:
+            shift = self.assignable_shifts[sid]
+            for slot in range(shift.role_count):
+                slot_vars = [
+                    slot_assignments[tid][sid][slot]
+                    for tid in talent_ids
+                    if slot in slot_assignments[tid].get(sid, {})
+                ]
+                fill_terms.extend(slot_vars)
+        
+        
+        penalty_terms = []
+        shifts_by_week: dict[date, list] = {}
+
+
+        #contracted hours are weekly so penalties need to be calculated per week, not across the whole schedule.
+        for sid in shift_ids:
+            week_start = week_start_for_date(self.assignable_shifts[sid].start_time.date())
+            shifts_by_week.setdefault(week_start, []).append(sid)
+        
+
+
+        # For each talent, convert contract hours and overworkthreshold hours to centihours since CP-SAT 
+        # only works with integers.
+        for tid in talent_ids:
+            talent = self.availability[tid]
+            contract_hours = int(talent.weeklyhours *SCALE)
+            threshold = int(talent.weeklyhours *OVERWORK_THRESHOLD * SCALE)
+
+            for week_start, week_sids in shifts_by_week.items():
+
+                hour_terms = []
+                for sid in week_sids:
+                    if sid not in assigned.get(tid, {}):
+                        continue
+                    
+                    #for each shift that  the talent is eligible for this week, create a term assigned[tid][sid] * centihours
+                    # if the solver sets assigned[tid][sid] =1, then the term counts to the centihours, otherwise, 0 
+                    centihours = int(shift_duration_hours(self.assignable_shifts[sid]) * SCALE)
+                    hour_terms.append(assigned[tid][sid] * centihours)
+                
+                if not hour_terms:
+                    continue
+
+                max_possible = sum(
+                    int(shift_duration_hours(self.assignable_shifts[sid]) * SCALE)
+                    for sid in week_sids
+                    if sid in assigned.get(tid, {})
+                )
+
+                total_worked = model.new_int_var(0, max_possible , f"total_hours_for_talent{tid}_in_week_{week_start}")
+                model.add(total_worked == sum(hour_terms))
+
+
+                #shortfall is the number of hours below contract hours that a talent works in a week and its values are 
+                #between 0 and contract hours
+                #shortfall is used by the solver to check how far from filling the gap of contract hours a talent is, and used 
+                #to incentivize the solver to either close the gap or stop choosing this talent.
+
+                shortfall = model.new_int_var(0, contract_hours, f"shortfall_for_talent_{tid}_in_week_{week_start}")
+                model.add_max_equality(shortfall, [contract_hours - total_worked, model.new_constant(0)])
+
+                mild_excess = model.new_int_var(0, threshold - contract_hours, f"mild_excess_for_talent_{tid}in_week_{week_start}")
+                capped = model.new_int_var(0, threshold, f"capped_excess_for_talent{tid}_in_week_{week_start}")
+                model.add_min_equality(capped, [total_worked, model.new_constant(threshold)])
+                model.add_max_equality(mild_excess, [capped - contract_hours, model.new_constant(0)])
+ 
+                # --- steep_excess = max(0, total_var - threshold) ---
+                steep_excess = model.new_int_var(0, max_possible + 1, f"steep_t{tid}_w{week_start}")
+                model.add_max_equality(steep_excess, [total_worked - threshold, model.new_constant(0)])
+
+                # ---- these are the terms that the solver uses to maximize the equation.
+                penalty_terms.append(UNDERWORK_PENALTY    * shortfall)
+                penalty_terms.append(MILD_OVERWORK_PENALTY  * mild_excess)
+                penalty_terms.append(STEEP_OVERWORK_PENALTY * steep_excess)
 
 
     def generate_schedule(self) -> list[assignment]:
-
 
         model = cp_model.CpModel()
         shift_ids = list(self.assignable_shifts.keys())
