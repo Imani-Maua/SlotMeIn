@@ -354,6 +354,7 @@ class CSPScheduler:
                               slot_assignments=slot_assignments)
         
         solver = cp_model.CpSolver()
+        solver.parameters.max_time_in_seconds = 30.0
         status = solver.solve(model)
 
         status_name = solver.status_name(status)
