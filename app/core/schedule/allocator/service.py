@@ -376,7 +376,26 @@ class CSPScheduler:
         return all_assignments
 
 
+class UnderstaffedShifts:
+    def __init__(self, assignable_shifts: dict[str, shiftSpecification], assigned_shifts: list[assignment]):
+        self.assignable_shifts = assignable_shifts
+        self.assigned_shifts = assigned_shifts
 
-        
-       
-       
+    def get_all(self) -> list:
+        assigned_count = {}
+        for a in self.assigned_shifts:
+            assigned_count[a.shift_id] = assigned_count.get(a.shift_id, 0) + 1
+
+        understaffed = []
+        for shift_id, shift in self.assignable_shifts.items():
+            assigned = assigned_count.get(shift_id, 0)
+            if assigned < shift.role_count:
+                understaffed.append({
+                    "shift_id":   shift_id,
+                    "shift_name": shift.shift_name,
+                    "role":       shift.role_name,
+                    "required":   shift.role_count,
+                    "assigned":   assigned,
+                    "missing":    shift.role_count - assigned,
+                })
+        return understaffed
