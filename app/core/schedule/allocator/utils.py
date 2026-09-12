@@ -7,11 +7,6 @@ from app.core.schedule.allocator.entities import assignment
 from app.core.utils.enums import Shifts
 
 
-def shift_duration_hours(shift: shiftSpecification) -> float:
-    raw = (shift.end_time - shift.start_time).total_seconds/3600
-    return raw - get_break_duration(shift.shift_name)
-
-
 def talent_eligible_for_shift(talent:talentAvailability, shift: shiftSpecification) -> bool:
     if talent.role != shift.role_name:
         return False

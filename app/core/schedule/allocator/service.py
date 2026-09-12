@@ -138,24 +138,8 @@ class CSPScheduler:
                     rest = (shift.start_time - prev_date_shift_end).total_seconds()/ 3600
                     if rest < MIN_REST_HOURS:
                         model.add(is_assigned[tid][sid] == 0)
-         # ---------------------------------------------------------------
-        # Constraint Five: constrained talents first
         # ---------------------------------------------------------------
-
-        # this is implicitly enforced by MRV within the model, but the system needs a 
-        # guarantee that constrained talents are going to be filled first
-        fill_term_bonus = []
-        for tid in talent_ids:
-            talent = self.availability[tid]
-            if talent.constraint:
-                for sid in shift_ids:
-                    for slot in range(self.assignable_shifts[sid].role_count):
-                        if slot in slot_assignments[tid].get(sid, {}):
-                            fill_term_bonus.append(slot_assignments[tid][sid][slot])
-        
-
-        # ---------------------------------------------------------------
-        # Constraint Six: max 6 consecutive days
+        # Constraint Five: max 6 consecutive days
         # ---------------------------------------------------------------
         all_dates = sorted(shifts_by_date.keys())
         first_date = all_dates[0] if all_dates else None
@@ -330,7 +314,20 @@ class CSPScheduler:
                 penalty_terms.append(MILD_OVERWORK_PENALTY  * mild_excess)
                 penalty_terms.append(STEEP_OVERWORK_PENALTY * steep_excess)
 
-        model.maximize(FILL_WEIGHT * sum(fill_terms) - sum(penalty_terms))
+        constrained_bonus_terms = [
+            slot_assignments[tid][sid][slot]
+            for tid in talent_ids
+            if self.availability[tid].constraint
+            for sid in shift_ids
+            for slot in range(self.assignable_shifts[sid].role_count)
+            if slot in slot_assignments[tid].get(sid, {})
+        ]
+
+        model.maximize(
+            FILL_WEIGHT * sum(fill_terms)
+            + CONSTRAINED_FILL_BONUS * sum(constrained_bonus_terms)
+            - sum(penalty_terms)
+        )
 
 
     def generate_schedule(self) -> list[assignment]:
