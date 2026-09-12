@@ -8,6 +8,7 @@ class Settings(BaseSettings):
     DATABASE_URL : str
     KEY : str
     RESEND_API_KEY: str
+    REDIS_URL: str = "redis://localhost:6379"
 
     class Config:
         env_file = ".env"
