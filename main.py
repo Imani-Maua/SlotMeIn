@@ -1,3 +1,4 @@
+from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.talents.routes import talents
@@ -7,9 +8,35 @@ from app.core.constraints.constraint_rules.routes import constraint_rules
 from app.core.shift_template.routes import shift_templates
 from app.core.shift_period.routes import shift_period
 from app.authentication.routes import auth_router
+from app.redis.client import create_redis_client
+from app.redis.job_queue import ScheduleJobQueue
+from app.database.session import engine
+from sqlalchemy import text
+import logging
+
+logger = logging.getLogger(__name__)
 
 
-app = FastAPI(title="SlotMeIn", version="1.0")
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    with engine.connect() as conn:
+        conn.execute(text("SELECT 1"))
+    logger.info("Postgres connection established")
+
+    redis_client= create_redis_client()
+    redis_client.ping()
+    logger.info("Redis connection established")
+    ScheduleJobQueue(redis_client).ensure_group()
+    logger.info("Redis stream and consumer group initialized")
+    app.state.redis = redis_client
+
+    yield
+
+    redis_client.close()
+    logger.info("Redis connection closed")
+
+
+app = FastAPI(title="SlotMeIn", version="1.0", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
