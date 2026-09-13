@@ -13,4 +13,5 @@ uvicorn[standard]>=0.27
 pydantic[email]
 psycopg2-binary
 python-multipart
+structlog>=24.0
 pytest==9.0.2
