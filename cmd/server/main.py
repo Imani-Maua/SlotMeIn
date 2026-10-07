@@ -36,7 +36,7 @@ async def lifespan(app: FastAPI):
         redis_client.ping()
         log.info("redis_connected")
         ScheduleJobQueue(redis_client).create_consumer_group()
-        EventPublisher(redis_client).ensure_stream()
+        EventPublisher(redis_client).create_stream()
         log.info("redis_streams_initialized")
         app.state.redis = redis_client
     except Exception as e:
