@@ -63,7 +63,7 @@ class SchedulingService:
                 {
                     "id":         f"preview-{i}",
                     "talent_id":  assignment.talent_id,
-                    "tal_role":   assignment.shift.role_name,
+                    "tal_role":   assignment.shift.role_name.value,
                     "shift_name": assignment.shift.shift_name,
                     "date_of":    str(assignment.shift.start_time.date()),
                     "start_time": str(assignment.shift.start_time.time()),
