@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from app.core.schedule.staffing.service import StaffingService
 from app.core.schedule.shifts.schema import shiftSpecification
 from app.core.schedule.shifts.utils import flatten_shift_structure, start_date_within_allowed_window
+from app.core.utils.enums import Role
 
 
 
@@ -50,7 +51,7 @@ class ShiftSlotBuilder:
                         start_time=datetime.combine(shift_date, role_data["start_time"]),
                         end_time=datetime.combine(shift_date, role_data["end_time"]),
                         shift_name= role_data["shift_name"],
-                        role_name= role,
+                        role_name= Role(role),
                         role_count= role_data["count"]
                     )
                     flattened = flatten_shift_structure(shift_spec)
