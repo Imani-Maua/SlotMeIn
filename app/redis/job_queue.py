@@ -53,13 +53,16 @@ class JobQueue:
         Yields (msg_id, fields) for each message received.
         The caller must call ack(msg_id) when processing is complete.
         """
-        messages = self.redisqueue.xreadgroup(
-            groupname=self.group,
-            consumername=consumer_name,
-            streams={self.stream: ">"},
-            count=1,
-            block=block_ms,
-        )
+        try:
+            messages = self.redisqueue.xreadgroup(
+                groupname=self.group,
+                consumername=consumer_name,
+                streams={self.stream: ">"},
+                count=1,
+                block=block_ms,
+            )
+        except exceptions.TimeoutError:
+            return
         if not messages:
             return
         for _, msgs in messages:
