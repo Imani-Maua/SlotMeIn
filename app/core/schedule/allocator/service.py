@@ -352,6 +352,7 @@ class CSPScheduler:
         
         solver = cp_model.CpSolver()
         solver.parameters.max_time_in_seconds = 30.0
+        solver.parameters.num_search_workers = 2  # cap CPU so the API server stays responsive
         status = solver.solve(model)
 
         status_name = solver.status_name(status)
