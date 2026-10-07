@@ -393,7 +393,7 @@ class UnderstaffedShifts:
                 understaffed.append({
                     "shift_id":   shift_id,
                     "shift_name": shift.shift_name,
-                    "role":       shift.role_name,
+                    "role":       shift.role_name.value,
                     "required":   shift.role_count,
                     "assigned":   assigned,
                     "missing":    shift.role_count - assigned,
