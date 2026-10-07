@@ -1,12 +1,15 @@
-from datetime import date
+from datetime import date, time
 
 import structlog
 
 from app.database.session import SessionLocal
+from app.database.models import Schedule as ScheduleModel
 from app.core.schedule.events import ScheduleEvent
 from app.redis.result_store import JobResultStore
 from app.redis.event_publisher import EventPublisher
 from app.core.schedule.service import SchedulingService
+from app.core.schedule.repo import ScheduleRepository
+from app.core.schedule.schema import ScheduleCreate, AssignmentBase
 
 log = structlog.get_logger()
 
@@ -21,15 +24,51 @@ def process_job(job_id: str, start_date_str: str, store: JobResultStore, publish
         publisher.publish(ScheduleEvent.SOLVER_RUNNING, {"job_id": job_id})
         log.info("csp_scheduler_solver_running", job_id=job_id)
         result = SchedulingService(db).generate(date.fromisoformat(start_date_str))
-        store.set_done(job_id, result)
-        publisher.publish(ScheduleEvent.JOB_DONE, {
-            "job_id": job_id,
-            "assignments": len(result.get("assignments", [])),
-            "understaffed": len(result.get("understaffed", [])),
+        log.info("csp_scheduler_solved", job_id=job_id, assignments=len(result.get("assignments", [])))
+
+        # Replace any existing draft for this week so re-generating is safe
+        week_start = date.fromisoformat(result["week_start"])
+        existing_draft = db.query(ScheduleModel).filter(
+            ScheduleModel.week_start == week_start,
+            ScheduleModel.status == "draft",
+        ).first()
+        if existing_draft:
+            ScheduleRepository(db).delete(existing_draft.id)
+            log.info("csp_scheduler_replaced_existing_draft", job_id=job_id, old_id=existing_draft.id)
+
+        saved = ScheduleRepository(db).create(ScheduleCreate(
+            week_start=week_start,
+            week_end=date.fromisoformat(result["week_end"]),
+            status="draft",
+            assignments=[
+                AssignmentBase(
+                    talent_id=a["talent_id"],
+                    date_of=date.fromisoformat(a["date_of"]),
+                    start_time=time.fromisoformat(a["start_time"]),
+                    end_time=time.fromisoformat(a["end_time"]),
+                    shift_name=a.get("shift_name"),
+                )
+                for a in result["assignments"]
+            ],
+        ))
+        log.info("csp_scheduler_draft_saved", job_id=job_id, schedule_id=saved.id)
+
+        store.set_done(job_id, {
+            "schedule_id":       saved.id,
+            "week_start":        result["week_start"],
+            "week_end":          result["week_end"],
+            "assignment_count":  len(result["assignments"]),
+            "understaffed_count": len(result["understaffed"]),
         })
-        log.info("csp_scheduler_job_done", job_id=job_id,
-                 assignments=len(result.get("assignments", [])),
-                 understaffed=len(result.get("understaffed", [])))
+        publisher.publish(ScheduleEvent.JOB_DONE, {
+            "job_id":      job_id,
+            "schedule_id": saved.id,
+            "assignments": len(result["assignments"]),
+            "understaffed": len(result["understaffed"]),
+        })
+        log.info("csp_scheduler_job_done", job_id=job_id, schedule_id=saved.id,
+                 assignments=len(result["assignments"]),
+                 understaffed=len(result["understaffed"]))
     except Exception as e:
         store.set_failed(job_id, str(e))
         publisher.publish(ScheduleEvent.JOB_FAILED, {"job_id": job_id, "error": str(e)})
