@@ -359,10 +359,20 @@ class CSPScheduler:
         if status == cp_model.OPTIMAL:
             logger.info("Solver found optimal solution (objective=%.2f)", solver.objective_value)
         elif status == cp_model.FEASIBLE:
-            logger.warning("Solver returned feasible but not optimal solution (objective=%.2f)", solver.objective_value)
+            # Time limit hit but a valid schedule exists — use it
+            logger.warning("Solver returned best feasible solution (objective=%.2f)", solver.objective_value)
+        elif status == cp_model.INFEASIBLE:
+            raise ValueError(
+                "Not enough staff to cover all shifts at this occupancy level. "
+                "Try a lower occupancy percentage."
+            )
         else:
-            logger.error("Solver failed with status: %s;  returning empty schedule", status_name)
-            return []
+            # UNKNOWN: time limit hit with no feasible solution found at all
+            logger.error("Solver hit time limit with no solution (status=%s)", status_name)
+            raise ValueError(
+                "Could not find a valid schedule within the time limit. "
+                "Try a lower occupancy percentage."
+            )
         
         all_assignments = []
         for tid in talent_ids:
