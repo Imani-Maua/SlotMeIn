@@ -19,7 +19,9 @@ if __name__ == "__main__":
     publisher = EventPublisher(redis_client)
 
     def handle(fields: dict):
-        process_job(fields["job_id"], fields["start_date"], store, publisher)
+        raw = fields.get("occupancy_pct")
+        occ = float(raw) if raw is not None else None
+        process_job(fields["job_id"], fields["start_date"], store, publisher, occupancy_pct=occ)
 
     log.info("schedule_worker_starting", consumer=CONSUMER_NAME)
 
