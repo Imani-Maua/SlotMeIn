@@ -1,6 +1,7 @@
 from datetime import date, time
 
 import structlog
+from sqlalchemy.exc import OperationalError, SQLAlchemyError
 
 from app.database.session import SessionLocal
 from app.database.models import Schedule as ScheduleModel
@@ -10,6 +11,14 @@ from app.redis.event_publisher import EventPublisher
 from app.core.schedule.service import SchedulingService
 from app.core.schedule.repo import ScheduleRepository
 from app.core.schedule.schema import ScheduleCreate, AssignmentBase
+
+
+def _user_facing_error(e: Exception) -> str:
+    if isinstance(e, (OperationalError, SQLAlchemyError)):
+        return "Database error while generating the schedule. Please try again."
+    if isinstance(e, ValueError):
+        return str(e)  # already clean (e.g. "A draft for this week already exists")
+    return "Schedule generation failed. Please try again."
 
 log = structlog.get_logger()
 
@@ -70,8 +79,9 @@ def process_job(job_id: str, start_date_str: str, store: JobResultStore, publish
                  assignments=len(result["assignments"]),
                  understaffed=len(result["understaffed"]))
     except Exception as e:
-        store.set_failed(job_id, str(e))
-        publisher.publish(ScheduleEvent.JOB_FAILED, {"job_id": job_id, "error": str(e)})
+        msg = _user_facing_error(e)
+        store.set_failed(job_id, msg)
+        publisher.publish(ScheduleEvent.JOB_FAILED, {"job_id": job_id, "error": msg})
         log.error("csp_scheduler_job_failed", job_id=job_id, error=str(e))
     finally:
         db.close()
