@@ -15,3 +15,5 @@ def session():
         yield db
     finally:
         db.close()
+
+get_db = session
