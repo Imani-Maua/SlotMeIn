@@ -14,16 +14,16 @@ from app.core.schedule.schema import ScheduleCreate, AssignmentBase
 log = structlog.get_logger()
 
 
-def process_job(job_id: str, start_date_str: str, store: JobResultStore, publisher: EventPublisher):
+def process_job(job_id: str, start_date_str: str, store: JobResultStore, publisher: EventPublisher, occupancy_pct: float | None = None):
     store.set_running(job_id)
     publisher.publish(ScheduleEvent.JOB_STARTED, {"job_id": job_id, "start_date": start_date_str})
-    log.info("csp_scheduler_job_started", job_id=job_id, start_date=start_date_str)
+    log.info("csp_scheduler_job_started", job_id=job_id, start_date=start_date_str, occupancy_pct=occupancy_pct)
 
     db = SessionLocal()
     try:
         publisher.publish(ScheduleEvent.SOLVER_RUNNING, {"job_id": job_id})
         log.info("csp_scheduler_solver_running", job_id=job_id)
-        result = SchedulingService(db).generate(date.fromisoformat(start_date_str))
+        result = SchedulingService(db).generate(date.fromisoformat(start_date_str), occupancy_pct=occupancy_pct)
         log.info("csp_scheduler_solved", job_id=job_id, assignments=len(result.get("assignments", [])))
 
         # Replace any existing draft for this week so re-generating is safe
