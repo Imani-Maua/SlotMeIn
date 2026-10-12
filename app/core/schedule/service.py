@@ -6,6 +6,7 @@ from app.core.schedule.repo import ScheduleRepository
 from app.core.schedule.allocator.entities import weekRange
 from app.core.schedule.allocator.service import CSPScheduler, UnderstaffedShifts
 from app.core.schedule.shifts.service import ShiftSlotBuilder
+from app.core.schedule.weather import fetch_forecast
 from app.core.schedule.talents.repo import TalentRepository
 from app.core.schedule.talents.preprocessor import TalentPreprocessor
 from app.core.schedule.talents.assembler import TalentAssembler
@@ -27,12 +28,14 @@ class SchedulingService:
             assembler=TalentAssembler(week_provider=week_provider),
         ).load_talent_objects()
 
-    def generate(self, start_date: date) -> dict:
+    def generate(self, start_date: date, daily_occupancy: dict[str, dict[str, float]] | None = None, use_weather: bool = True) -> dict:
         week_provider = weekRange(start_date=start_date)
         week = week_provider.get_week()
 
+        temp_forecast = fetch_forecast(week[0]) if use_weather else {}
         assignable_shifts = ShiftSlotBuilder(
-            db=self.db, start_date=week[0]
+            db=self.db, start_date=week[0], daily_occupancy=daily_occupancy,
+            temp_forecast=temp_forecast,
         ).build_week_slots()
         log.info("schedule_generation: shift_slots_built", week_start=str(week[0]), count=len(assignable_shifts))
 

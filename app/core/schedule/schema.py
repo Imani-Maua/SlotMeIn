@@ -1,7 +1,16 @@
 from pydantic import BaseModel
 from datetime import date, time
-from typing import Optional
+from typing import Optional, Any
 
+
+class WeekdayOccupancy(BaseModel):
+    morning: float | None = None
+    afternoon: float | None = None
+
+
+class SchedulerConfig(BaseModel):
+    use_weather: bool = True
+    occupancy_by_weekday: dict[str, WeekdayOccupancy] = {}
 
 class inputDate(BaseModel):
     start_date: date

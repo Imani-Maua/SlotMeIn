@@ -17,14 +17,14 @@ class ShiftSlotBuilder:
         self,
         db: Session,
         start_date: date,
-        occupancy_pct: float | None = None,
-        temp_mean: float | None = None,
+        daily_occupancy: dict[str, dict[str, float]] | None = None,
+        temp_forecast: dict[str, float] | None = None,
     ):
         self.db = db
         self.engine = StaffingService(db=self.db)
         self.start_date = start_date
-        self.occupancy_pct = occupancy_pct
-        self.temp_mean = temp_mean
+        self.daily_occupancy = daily_occupancy  # {date_str: {"morning": 0.x, "afternoon": 0.x}}
+        self.temp_forecast = temp_forecast or {}  # {date_str: temp_mean_celsius}
         self.week_spec: dict = self._build_week_spec()
 
     def _ml_shift_type(self, period_roles: dict, period_id: int) -> str:
@@ -41,16 +41,24 @@ class ShiftSlotBuilder:
         period_roles = self.engine.generate_roles_per_shift()
 
         for dt in week:
-            if self.occupancy_pct is not None:
-                tier_override = {
-                    period_id: predict_tier(
-                        dt=dt.date(),
-                        occupancy_pct=self.occupancy_pct,
-                        shift=self._ml_shift_type(period_roles, period_id),
-                        temp_mean=self.temp_mean,
-                    )
-                    for period_id in period_roles
-                }
+            day_occ = (self.daily_occupancy or {}).get(str(dt.date()), {})
+            if day_occ:
+                tier_override = {}
+                for period_id in period_roles:
+                    shift_type = self._ml_shift_type(period_roles, period_id)
+                    occ = day_occ.get(shift_type)
+                    if occ is not None:
+                        tier_override[period_id] = predict_tier(
+                            dt=dt.date(),
+                            occupancy_pct=occ,
+                            shift=shift_type,
+                            temp_mean=self.temp_forecast.get(str(dt.date())),
+                        )
+                    else:
+                        tier_override[period_id] = self.engine.determine_staffing_level(
+                            day=dt.strftime("%A"),
+                            staffing_rules=self.engine._define_staffing_rules(),
+                        )
                 staffed_periods = self.engine.apply_staffing_to_periods(
                     period_roles=period_roles,
                     tier_override=tier_override,
