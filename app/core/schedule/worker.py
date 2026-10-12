@@ -1,4 +1,4 @@
-from datetime import date, time
+from datetime import date, time, timedelta
 
 import structlog
 from sqlalchemy.exc import OperationalError, SQLAlchemyError
@@ -11,6 +11,7 @@ from app.redis.event_publisher import EventPublisher
 from app.core.schedule.service import SchedulingService
 from app.core.schedule.repo import ScheduleRepository
 from app.core.schedule.schema import ScheduleCreate, AssignmentBase
+from app.core.schedule.config_store import SchedulerConfig
 
 
 def _user_facing_error(e: Exception) -> str:
@@ -23,16 +24,37 @@ def _user_facing_error(e: Exception) -> str:
 log = structlog.get_logger()
 
 
-def process_job(job_id: str, start_date_str: str, store: JobResultStore, publisher: EventPublisher, occupancy_pct: float | None = None):
+def _build_occupancy_lookup(start_date: date, config: SchedulerConfig) -> dict[str, dict[str, float]]:
+    lookup = {}
+    for i in range(7):
+        dt = start_date + timedelta(days=i)
+        weekday_occ = config.occupancy_by_weekday.get(dt.strftime("%A"))
+        if weekday_occ is None:
+            continue
+        shifts = {}
+        if weekday_occ.morning is not None:
+            shifts["morning"] = weekday_occ.morning
+        if weekday_occ.afternoon is not None:
+            shifts["afternoon"] = weekday_occ.afternoon
+        if shifts:
+            lookup[str(dt)] = shifts
+    return lookup
+
+
+def process_job(job_id: str, start_date_str: str, store: JobResultStore, publisher: EventPublisher, config: SchedulerConfig | None = None):
     store.set_running(job_id)
     publisher.publish(ScheduleEvent.JOB_STARTED, {"job_id": job_id, "start_date": start_date_str})
-    log.info("csp_scheduler_job_started", job_id=job_id, start_date=start_date_str, occupancy_pct=occupancy_pct)
+    log.info("csp_scheduler_job_started", job_id=job_id, start_date=start_date_str)
+
+    cfg = config or SchedulerConfig()
+    start_date = date.fromisoformat(start_date_str)
+    daily_occupancy = _build_occupancy_lookup(start_date, cfg) or None
 
     db = SessionLocal()
     try:
         publisher.publish(ScheduleEvent.SOLVER_RUNNING, {"job_id": job_id})
         log.info("csp_scheduler_solver_running", job_id=job_id)
-        result = SchedulingService(db).generate(date.fromisoformat(start_date_str), occupancy_pct=occupancy_pct)
+        result = SchedulingService(db).generate(start_date, daily_occupancy=daily_occupancy, use_weather=cfg.use_weather)
         log.info("csp_scheduler_solved", job_id=job_id, assignments=len(result.get("assignments", [])))
 
         # Replace any existing draft for this week so re-generating is safe
