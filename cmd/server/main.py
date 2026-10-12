@@ -11,6 +11,7 @@ from app.core.constraints.talent_constraints.routes import talent_constraints
 from app.core.constraints.constraint_rules.routes import constraint_rules
 from app.core.shift_template.routes import shift_templates
 from app.core.shift_period.routes import shift_period
+from app.core.schedule.staffing.routes import staffing_rules
 from app.authentication.routes import auth_router
 from app.redis.client import create_redis_client
 from app.core.schedule.events import ScheduleJobQueue
@@ -66,3 +67,4 @@ app.include_router(constraint_rules, prefix="/constraint_rules")
 app.include_router(shift_period, prefix="/shift_periods")
 app.include_router(shift_templates, prefix="/shift_templates")
 app.include_router(schedule, prefix="/schedule")
+app.include_router(staffing_rules, prefix="/staffing_rules")
