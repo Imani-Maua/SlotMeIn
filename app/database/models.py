@@ -120,6 +120,15 @@ class Request(Base):
 
     talent: Mapped[Optional["Talent"]] = relationship(back_populates="requests")
 
+class StaffingRule(Base):
+    __tablename__ = "staffing_rules"
+
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    role: Mapped[str] = mapped_column(String(50))
+    tier: Mapped[str] = mapped_column(String(10))  # "low", "med", "high"
+    count: Mapped[int] = mapped_column(Integer)
+
+
 class TalentData(Base):
     __tablename__ = "talent_data"
     
