@@ -7,6 +7,7 @@ from app.redis.result_store import JobResultStore
 from app.redis.event_publisher import EventPublisher
 from app.core.schedule.events import ScheduleJobQueue
 from app.core.schedule.worker import process_job
+from app.core.schedule.config_store import SchedulerConfigStore
 
 configure_logging()
 log = structlog.get_logger()
@@ -19,9 +20,8 @@ if __name__ == "__main__":
     publisher = EventPublisher(redis_client)
 
     def handle(fields: dict):
-        raw = fields.get("occupancy_pct")
-        occ = float(raw) if raw is not None else None
-        process_job(fields["job_id"], fields["start_date"], store, publisher, occupancy_pct=occ)
+        config = SchedulerConfigStore(redis_client).get()
+        process_job(fields["job_id"], fields["start_date"], store, publisher, config=config)
 
     log.info("schedule_worker_starting", consumer=CONSUMER_NAME)
 
