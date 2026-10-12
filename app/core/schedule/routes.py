@@ -11,6 +11,7 @@ from app.core.schedule.schema import (
     inputDate, ScheduleOut, AssignmentOut, AssignmentUpdate,
     AssignmentIn, ScheduleCreate, StatusUpdate,
 )
+from app.core.schedule.config_store import SchedulerConfig, SchedulerConfigStore
 from app.core.schedule.repo import ScheduleRepository
 from app.database.models import Schedule
 from app.authentication.utils.auth_utils import get_current_user
@@ -46,6 +47,24 @@ def _serialize_schedule(schedule: Schedule):
 
 
 
+@schedule.get("/config", response_model=SchedulerConfig)
+async def get_config(
+    _: Annotated[User, Depends(get_current_user)],
+    redis_client: Annotated[redis.Redis, Depends(get_redis)],
+):
+    return SchedulerConfigStore(redis_client).get()
+
+
+@schedule.put("/config", response_model=SchedulerConfig)
+async def save_config(
+    _: Annotated[User, Depends(get_current_user)],
+    config: SchedulerConfig,
+    redis_client: Annotated[redis.Redis, Depends(get_redis)],
+):
+    SchedulerConfigStore(redis_client).save(config)
+    return config
+
+
 @schedule.post("/generate", status_code=status.HTTP_202_ACCEPTED)
 async def generate_schedule(
     _: Annotated[User, Depends(get_current_user)],
@@ -54,10 +73,8 @@ async def generate_schedule(
 ):
     queue = ScheduleJobQueue(redis_client)
     store = JobResultStore(redis_client)
-
     job_id = queue.publish(str(start_date.start_date))
     store.set_pending(job_id)
-
     return {"job_id": job_id, "status": "pending"}
 
 
