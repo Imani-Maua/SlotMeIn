@@ -20,7 +20,7 @@ from app.authentication.utils.auth_utils import get_current_user
 shift_templates = APIRouter(tags=["Shift Templates"])
 
 
-@shift_templates.post("/create", response_model=TemplateOut)
+@shift_templates.post("/", response_model=TemplateOut)
 def create_template(
     current_user: Annotated[User, Depends(get_current_user)],
     db: Annotated[Session, Depends(session)],
@@ -46,7 +46,7 @@ def create_template(
     shift_template = TemplateService().create_template(db=db, data=data)
     return shift_template
 
-@shift_templates.put("/update/{template_id}", response_model=TemplateOut)
+@shift_templates.put("/{template_id}", response_model=TemplateOut)
 def update_template(
     current_user: Annotated[User, Depends(get_current_user)],
     db: Annotated[Session, Depends(session)],
@@ -74,7 +74,7 @@ def update_template(
     updated_template = TemplateService().update_template(db=db, data=update_data, template_id=template_id)
     return updated_template
 
-@shift_templates.delete("/delete/{template_id}", status_code=204, response_model=None)
+@shift_templates.delete("/{template_id}", status_code=204, response_model=None)
 def delete_template(
     current_user: Annotated[User, Depends(get_current_user)],
     db: Annotated[Session, Depends(session)],
@@ -95,7 +95,7 @@ def delete_template(
     """
     TemplateService().delete_template(db=db, template_id=template_id)
 
-@shift_templates.get("/retrieve_template/{template_id}", response_model=TemplateOut)
+@shift_templates.get("/{template_id}", response_model=TemplateOut)
 def retrieve_template(
     current_user: Annotated[User, Depends(get_current_user)],
     db: Annotated[Session, Depends(session)],
@@ -120,7 +120,7 @@ def retrieve_template(
     return get_template(db=db, id=template_id)
 
 
-@shift_templates.get("/retrieve_all_templates", response_model=list[TemplateOut])
+@shift_templates.get("/", response_model=list[TemplateOut])
 def retrieve_templates(
     current_user: Annotated[User, Depends(get_current_user)],
     db: Annotated[Session, Depends(session)],

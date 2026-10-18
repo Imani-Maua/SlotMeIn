@@ -16,7 +16,7 @@ from app.authentication.utils.auth_utils import get_current_user
 
 constraint_rules = APIRouter(tags=['Constraint Rules'])
 
-@constraint_rules.post("/create", response_model=list[ConstraintRuleOut])
+@constraint_rules.post("/", response_model=list[ConstraintRuleOut])
 def create_constraint_rule(
     current_user: Annotated[User, Depends(get_current_user)],
     db: Annotated[Session, Depends(session)],
@@ -43,7 +43,7 @@ def create_constraint_rule(
     constraint_rule = ConstraintRuleService().create_rules(db=db, data=data)
     return constraint_rule
 
-@constraint_rules.delete("/delete/{rule_id}", status_code=204)
+@constraint_rules.delete("/{rule_id}", status_code=204)
 def delete_constraint_rule(
     current_user: Annotated[User, Depends(get_current_user)],
     db: Annotated[Session, Depends(session)],

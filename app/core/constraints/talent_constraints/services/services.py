@@ -16,7 +16,7 @@ class TalentConstraintService(CRUDBase[TalentConstraint, ConstraintIn, Constrain
        
         talent = db.query(Talent).filter(Talent.id == data.talent_id).first()
         constraint = db.query(TalentConstraint).filter(TalentConstraint.talent_id == data.talent_id,TalentConstraint.type == data.type).first()
-        validate_constraint_input(talent=talent, constraint=constraint)
+        validate_constraint_input(talent=talent, constraint=constraint, constraint_type=data.type)
         created_constraint: TalentConstraint = self.create(db=db, obj_in=data)
         return ConstraintOut.model_validate(created_constraint)
 

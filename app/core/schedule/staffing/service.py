@@ -1,7 +1,16 @@
 from sqlalchemy.orm import Session
 from app.core.utils.enums import Role
 from collections import defaultdict
-from app.database.models import ShiftPeriod
+from app.database.models import ShiftPeriod, StaffingRule
+
+_DEFAULTS: dict[str, dict[str, int]] = {
+    Role.MANAGER.value:   {"low": 1, "med": 1, "high": 1},
+    Role.LEADER.value:    {"low": 1, "med": 2, "high": 3},
+    Role.BARTENDER.value: {"low": 1, "med": 2, "high": 3},
+    Role.SERVER.value:    {"low": 2, "med": 3, "high": 4},
+    Role.RUNNER.value:    {"low": 1, "med": 2, "high": 3},
+    Role.HOSTESS.value:   {"low": 1, "med": 1, "high": 2},
+}
 
 
 
@@ -38,22 +47,27 @@ class StaffingService:
             return "med"
     
     def staffing_configuration(self, role: str) -> dict:
+        rows = (
+            self.db.query(StaffingRule)
+            .filter(StaffingRule.role == role)
+            .all()
+        )
+        if not rows:
+            rows = self._seed_defaults(role)
 
+        result = {r.tier: r.count for r in rows}
+        if not result:
+            raise ValueError(f"Unknown role: {role}")
+        return result
 
-        STAFFING_CONFIGURATION_RULES = {
-            Role.MANAGER.value: {"low": 1, "med": 1, "high": 1},
-            Role.LEADER.value: {"low": 1, "med": 2, "high": 3},
-            Role.BARTENDER.value: {"low": 1, "med": 2, "high": 3},
-            Role.SERVER.value: {"low": 2, "med": 3, "high": 4},
-            Role.RUNNER.value: {"low": 1, "med": 2, "high": 3},
-            Role.HOSTESS.value: {"low": 1, "med": 1, "high": 2}
-        }
-
-        role_staffing = STAFFING_CONFIGURATION_RULES.get(role)
-        if not role_staffing:
-            raise ModuleNotFoundError(f"Unknown role: {role}")
-        
-        return role_staffing
+    def _seed_defaults(self, role: str) -> list[StaffingRule]:
+        defaults = _DEFAULTS.get(role)
+        if defaults is None:
+            return []
+        rows = [StaffingRule(role=role, tier=tier, count=count) for tier, count in defaults.items()]
+        self.db.add_all(rows)
+        self.db.commit()
+        return rows
 
 
     def generate_roles_per_shift(self) -> dict[int, dict[str, dict]]:
@@ -77,34 +91,41 @@ class StaffingService:
     
         return period_roles
     
-    def apply_staffing_to_periods(self, period_roles: dict, day:str) -> dict[int, dict[str, dict]]:
-     
-     staffing_rules = self._define_staffing_rules()
-     staffing_level = self.determine_staffing_level(day=day, staffing_rules=staffing_rules)
+    def apply_staffing_to_periods(
+        self,
+        period_roles: dict,
+        day: str | None = None,
+        tier_override: dict | None = None,
+    ) -> dict[int, dict[str, dict]]:
+        """Build staffed period dict.
 
-     staffed_periods = defaultdict(dict)
+        When tier_override is supplied it maps period_id → tier string ("low"/"med"/"high")
+        and is used instead of the day-of-week lookup, allowing each shift period to
+        receive an independently ML-predicted staffing level.
+        """
+        staffing_rules = self._define_staffing_rules()
+        staffed_periods = defaultdict(dict)
 
-    
+        for period_id, roles_dict in period_roles.items():
+            if tier_override is not None:
+                staffing_level = tier_override[period_id]
+            else:
+                staffing_level = self.determine_staffing_level(day=day, staffing_rules=staffing_rules)
 
-     for period_id, roles_dict in period_roles.items():
-          roles_dict: dict
-          staffed_roles = {}
-
-          for role, role_data in roles_dict.items():
-            staffing_config = self.staffing_configuration(role)
-            count = staffing_config[staffing_level]
-
-            staffed_roles[role] = {
-                "count": count,
-                "shift_name": role_data["shift_name"],
-                "start_time": role_data["start_time"],
-                "end_time": role_data["end_time"],
-                "template_id": role_data["template_id"]
-            }
-
+            staffed_roles = {}
+            for role, role_data in roles_dict.items():
+                staffing_config = self.staffing_configuration(role)
+                count = staffing_config[staffing_level]
+                staffed_roles[role] = {
+                    "count": count,
+                    "shift_name": role_data["shift_name"],
+                    "start_time": role_data["start_time"],
+                    "end_time": role_data["end_time"],
+                    "template_id": role_data["template_id"]
+                }
             staffed_periods[period_id] = staffed_roles
 
-     return staffed_periods
+        return staffed_periods
     
     
      

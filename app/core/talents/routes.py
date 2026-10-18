@@ -20,7 +20,7 @@ talents = APIRouter(tags=["Talents"])
 
 
 
-@talents.post("/create", response_model=TalentOut)
+@talents.post("/", response_model=TalentOut)
 def create_talent(
     current_user: Annotated[User, Depends(get_current_user)],
     db: Annotated[Session, Depends(session)],
@@ -46,7 +46,7 @@ def create_talent(
     talents = TalentService().create_talent(db=db, data=data)
     return talents
   
-@talents.put("/update/{talent_id}", response_model=TalentOut)
+@talents.put("/{talent_id}", response_model=TalentOut)
 def update_talent(
     current_user: Annotated[User, Depends(get_current_user)],
     db: Annotated[Session, Depends(session)],
@@ -74,7 +74,7 @@ def update_talent(
     talent = TalentService().update_talent(db, talent_id, data)
     return talent
 
-@talents.get("/retrieve_talents", response_model=list[TalentOut])
+@talents.get("/", response_model=list[TalentOut])
 def retrieve_all_talents(
     current_user: Annotated[User, Depends(get_current_user)],
     db: Annotated[Session, Depends(session)], 
@@ -105,7 +105,7 @@ def retrieve_all_talents(
     """
     return get_all_talents(db, name=name, tal_role=tal_role, contract_type=contract_type, is_active=is_active)
 
-@talents.get("/retrieve_talent/{talent_id}", response_model=TalentOut)
+@talents.get("/{talent_id}", response_model=TalentOut)
 def retrieve_a_talent(
     current_user: Annotated[User, Depends(get_current_user)],
     db: Annotated[Session, Depends(session)],

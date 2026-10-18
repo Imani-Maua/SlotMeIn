@@ -1,4 +1,5 @@
 from sqlalchemy.orm import Session
+from fastapi import HTTPException
 from datetime import time
 from app.core.utils.crud import CRUDBase
 from app.core.shift_period.schema import ShiftPeriodIn,  ShiftPeriodUpdate, ShiftOut, OneShiftOut

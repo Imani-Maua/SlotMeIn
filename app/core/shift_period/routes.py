@@ -19,7 +19,7 @@ shift_period = APIRouter(tags=["Shift Period"])
 
 
 
-@shift_period.post("/create", response_model=ShiftOut)
+@shift_period.post("/", response_model=ShiftOut)
 def create_shift_period(
     current_user: Annotated[User, Depends(get_current_user)],
     db: Annotated[Session, Depends(session)],
@@ -46,7 +46,7 @@ def create_shift_period(
     
 
   
-@shift_period.patch("/update/{period_id}", response_model=ShiftOut)
+@shift_period.patch("/{period_id}", response_model=ShiftOut)
 def update_shift_period(
     current_user: Annotated[User, Depends(get_current_user)],
     db: Annotated[Session, Depends(session)],
@@ -73,7 +73,7 @@ def update_shift_period(
     return ShiftPeriodService().update_shift_period(db=db, data=update_data, period_id=period_id)
    
 
-@shift_period.delete("/delete/{period_id}", status_code=204, response_model=None)
+@shift_period.delete("/{period_id}", status_code=204, response_model=None)
 def delete_shift_period(
     current_user: Annotated[User, Depends(get_current_user)],
     db: Annotated[Session, Depends(session)],
@@ -94,7 +94,7 @@ def delete_shift_period(
     """
     return ShiftPeriodService().delete_shift_period(db=db, period_id=period_id)
 
-@shift_period.get("/retrieve_period/{period_id}", response_model=OneShiftOut)
+@shift_period.get("/{period_id}", response_model=OneShiftOut)
 def retrieve_period(
     current_user: Annotated[User, Depends(get_current_user)],
     db: Annotated[Session, Depends(session)],
@@ -118,7 +118,7 @@ def retrieve_period(
     """
     return get_period(db=db, id=period_id)
 
-@shift_period.get("/retrieve_all_periods", response_model=list[ShiftOut])
+@shift_period.get("/", response_model=list[ShiftOut])
 def retrieve_periods(
     current_user: Annotated[User, Depends(get_current_user)],
     db: Annotated[Session, Depends(session)],

@@ -6,7 +6,7 @@ settings = Settings()
 
 
 database = settings.DATABASE_URL
-engine = create_engine(database, echo=True)
+engine = create_engine(database, echo=True, pool_pre_ping=True, pool_recycle=300)
 SessionLocal = sessionmaker(autoflush=False, autocommit=False, bind=engine)
 
 def session():
@@ -15,3 +15,5 @@ def session():
         yield db
     finally:
         db.close()
+
+get_db = session
