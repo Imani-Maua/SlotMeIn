@@ -11,10 +11,10 @@ scheduler.db 19-19-25-318.db
 .DS_Store
 notebooks/.ipynb_checkpoints
 .ipynb_checkpoints
-thesis
 scripts
 .ipynb_checkpoints/
 *.xlsx
 *.pdf
-*.png
 *.pkl
+notebooks/
+data/

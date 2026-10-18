@@ -1,0 +1,306 @@
+% ============================================================
+%  SLOTMEIN THESIS — PART 1: Front Matter + Introduction + Literature Review
+%  University of Debrecen — Faculty of Informatics
+%  Author: Maua Elaine Imani | Neptun: Z989HR
+%  Supervisor: Bogacsovics Gergő
+% ============================================================
+
+\documentclass[12pt,a4paper]{report}
+
+% ---- Packages -----------------------------------------------
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{times}
+\usepackage[left=3cm,right=2cm,top=3cm,bottom=3cm]{geometry}
+\usepackage{setspace}
+\onehalfspacing
+\usepackage{graphicx}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{longtable}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{hyperref}
+\hypersetup{
+    colorlinks=true,
+    linkcolor=black,
+    citecolor=black,
+    urlcolor=blue
+}
+\usepackage[sorting=none]{biblatex}
+\addbibresource{references.bib}
+\usepackage{fancyhdr}
+\usepackage{titlesec}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{float}
+\usepackage{enumitem}
+\usepackage{parskip}
+\usepackage{csquotes}
+\usepackage{microtype}
+\usepackage{lmodern}
+
+% ---- Code listings style ------------------------------------
+\lstdefinestyle{pythonstyle}{
+    language=Python,
+    basicstyle=\ttfamily\small,
+    keywordstyle=\color{blue}\bfseries,
+    stringstyle=\color{orange},
+    commentstyle=\color{gray}\itshape,
+    numberstyle=\tiny\color{gray},
+    numbers=left,
+    stepnumber=1,
+    numbersep=8pt,
+    showspaces=false,
+    showstringspaces=false,
+    breaklines=true,
+    frame=single,
+    tabsize=4,
+    captionpos=b,
+    backgroundcolor=\color{gray!5}
+}
+\lstset{style=pythonstyle}
+
+% ---- Chapter title formatting -------------------------------
+\titleformat{\chapter}[display]
+  {\normalfont\Large\bfseries}{\chaptertitlename\ \thechapter}{16pt}{\Large}
+\titlespacing*{\chapter}{0pt}{30pt}{20pt}
+
+% ---- Header/Footer ------------------------------------------
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small\leftmark}
+\fancyhead[R]{\small\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+
+
+% =============================================================
+%                     DOCUMENT BEGIN
+% =============================================================
+\begin{document}
+
+% ---- External Title Page ------------------------------------
+\begin{titlepage}
+\centering
+\vspace*{3cm}
+{\LARGE\bfseries THESIS\par}
+\vspace{5cm}
+{\Large\bfseries Enhancing Workforce Scheduling and Operational Efficiency Using an AI-Powered Predictive Analytics\par}
+\vfill
+\begin{flushright}
+    {\large Maua Elaine Imani}\\[4pt]
+    {\normalsize Computer Science}
+\end{flushright}
+\vspace{2cm}
+{\large Debrecen}\\[4pt]
+{\large 2026}
+\end{titlepage}
+
+% ---- Internal Title Page ------------------------------------
+\begin{titlepage}
+\centering
+{\large University of Debrecen\\Faculty of Informatics\\Department of Data Science and Visualization\par}
+\vspace{2.5cm}
+{\LARGE\bfseries Enhancing Workforce Scheduling and Operational Efficiency Using an AI-Powered Predictive Analytics\par}
+\vspace{3cm}
+\begin{minipage}[t]{0.48\textwidth}
+\raggedright
+    \textbf{Supervisor:}\\
+    Bogacsovics Gergő\\
+    Assistant Lecturer
+\end{minipage}
+\hfill
+\begin{minipage}[t]{0.48\textwidth}
+\raggedleft
+    \textbf{Candidate:}\\
+    Maua Elaine Imani\\
+    Computer Science
+\end{minipage}
+\vfill
+{\large Debrecen, 2026}
+\end{titlepage}
+
+% ---- Acknowledgements ---------------------------------------
+\chapter*{Acknowledgements}
+\addcontentsline{toc}{chapter}{Acknowledgements}
+
+I would like to express my sincere gratitude to my supervisor, Bogacsovics Gergő, for his guidance, constructive feedback, and continuous encouragement throughout the development of this thesis. His expertise in data science and artificial intelligence provided an invaluable compass for navigating the complex research landscape of predictive analytics and workforce scheduling.
+
+I am grateful to the Faculty of Informatics at the University of Debrecen for providing the academic environment and resources necessary for undertaking this research. Special thanks are extended to all faculty members whose lectures and seminars laid the theoretical foundation upon which this work is built.
+
+I also wish to thank my fellow students for the many stimulating discussions during the development process, and the open-source community behind FastAPI, Python, and the scientific libraries used in this project.
+
+Finally, and above all, I extend my deepest gratitude to my family and friends for their unwavering moral support and patience. This work would not have been possible without them.
+
+% ---- Table of Contents --------------------------------------
+\tableofcontents
+\listoffigures
+\listoftables
+
+% ---- Abstract -----------------------------------------------
+\chapter*{Abstract}
+\addcontentsline{toc}{chapter}{Abstract}
+
+Workforce scheduling in the hospitality industry remains one of the most operationally demanding and error-prone management tasks. Manual scheduling processes are time-intensive, susceptible to human bias, frequently non-compliant with labour regulations, and poorly adapted to dynamic fluctuations in demand. This thesis presents \textit{SlotMeIn}, a FastAPI-based intelligent scheduling system designed to automate and optimise workforce allocation for hospitality environments, with a focus on scalability, constraint compliance, and readiness for AI-powered predictive staffing.
+
+The system implements a deterministic constraint-satisfaction engine that prioritises candidates through a multi-dimensional scoring function incorporating weekly hours balance, consecutive workday streaks, and minimum rest-period compliance. Candidate selection is further refined using a round-robin fairness mechanism to ensure equitable shift distribution. The system exposes a RESTful API architecture following Domain-Driven Design principles, backed by a PostgreSQL relational database and secured with JWT-based authentication.
+
+This thesis also presents a comprehensive literature review covering predictive analytics, machine learning-based scheduling models, and operational research methods applied to workforce management. It discusses the architectural decisions underpinning SlotMeIn, evaluates the deterministic scheduling engine through unit testing, and outlines the pathway for integrating an AI predictive layer to replace static staffing rules with data-driven demand forecasting.
+
+The results demonstrate that the deterministic engine produces legally compliant, fairness-aware schedules significantly faster than manual methods, and that the system architecture is well-positioned to serve as the operational backbone for the forthcoming AI-augmented scheduling model.
+
+\textbf{Keywords:} workforce scheduling, constraint satisfaction, FastAPI, predictive analytics, hospitality operations, artificial intelligence, REST API, Python.
+
+% =============================================================
+%                 CHAPTER 1 — INTRODUCTION
+% =============================================================
+\chapter{Introduction}
+
+\section{Background and Motivation}
+
+The global hospitality industry employs millions of workers across hotels, restaurants, and event venues, making labour one of its largest and most complex cost centres. Effective management of this workforce is not simply an administrative function; it is a strategic imperative that directly affects service quality, employee wellbeing, regulatory compliance, and financial performance. Despite its criticality, a significant proportion of hospitality businesses—particularly small and medium-sized enterprises (SMEs)—continue to rely on manual or semi-manual scheduling processes: spreadsheets, paper rotas, or rudimentary scheduling software that lacks intelligence.
+
+Manual scheduling introduces a cascade of operational inefficiencies. Managers must simultaneously balance employee availability, contractual obligations, labour law constraints (such as mandatory rest periods and weekly hour caps), and fluctuating demand driven by occupancy rates, seasonal patterns, local events, and day-of-week effects. The cognitive load involved makes it nearly impossible for a human scheduler to optimise all these variables simultaneously, leading to recurring problems: overstaffing during low-demand periods that inflates labour costs, understaffing during peak periods that degrades customer experience, violations of labour regulations that create legal exposure, and an inequitable distribution of desirable versus undesirable shifts that damages employee morale and increases turnover \cite{van_den_bergh_2013}.
+
+The advent of artificial intelligence and machine learning offers a compelling alternative. Predictive analytics systems can learn historical demand patterns and forecast future staffing requirements with a degree of accuracy and speed that no human scheduler can match. When combined with constraint-satisfaction algorithms and fairness mechanisms, such systems can generate schedules that are simultaneously optimal, compliant, and equitable—freeing managers to focus on higher-value tasks.
+
+This thesis presents \textit{SlotMeIn}, an AI-ready workforce scheduling system developed as part of the author's applied research in the field of artificial intelligence for process and resource optimisation. SlotMeIn is implemented as a production-ready RESTful backend using FastAPI and Python, with a PostgreSQL relational database, JWT authentication, and a sophisticated deterministic scheduling engine that forms the operational core of the system. The system is currently deployed as a live demonstration application and will serve as the integration target for an AI predictive staffing layer.
+
+\section{Research Objectives}
+
+This thesis is guided by the following research objectives:
+
+\begin{enumerate}[leftmargin=1.5cm]
+    \item \textbf{RO1:} To conduct a systematic review of the literature on workforce scheduling optimisation, constraint-satisfaction methods, and the application of predictive analytics in the hospitality industry.
+    \item \textbf{RO2:} To design and implement a constraint-aware, fairness-preserving scheduling engine capable of generating week-long shift plans for multi-role hospitality environments.
+    \item \textbf{RO3:} To architect a scalable RESTful API infrastructure following Domain-Driven Design principles, suitable for integration with an AI predictive layer.
+    \item \textbf{RO4:} To validate the scheduling engine through unit testing against a comprehensive set of labour constraint scenarios.
+    \item \textbf{RO5:} To outline and partially implement a data simulation and machine learning pathway for AI-powered staffing demand forecasting.
+\end{enumerate}
+
+\section{Significance of the Research}
+
+The significance of this research is twofold. From a practical standpoint, SlotMeIn addresses a real and widespread operational pain point in the hospitality sector. From an academic standpoint, it contributes to the growing body of work on the application of artificial intelligence to service-sector resource management—an area where research has historically lagged behind manufacturing and logistics \cite{burke_et_al_2004}.
+
+Furthermore, the thesis provides a blueprint for the integration of deterministic constraint-satisfaction scheduling with data-driven demand prediction, a hybrid architecture that is increasingly recognised in the operations research literature as the most pragmatic approach to real-world scheduling problems \cite{pinedo_2016}.
+
+\section{Scope and Limitations}
+
+This thesis focuses on the backend scheduling system and its AI readiness. The frontend client application, while developed separately as part of the broader SlotMeIn project, is outside the scope of the formal thesis analysis. The AI predictive model is presented in its data preparation and initial integration stages; full model training, evaluation, and comparative benchmarking are planned for a subsequent phase.
+
+The hospitality context is modelled on a restaurant or hotel food-and-beverage outlet with roles including Manager, Team Leader, Bartender, Server, Runner, and Hostess. The system is generalisable to broader contexts, but the staffing configuration rules presented reflect this specific domain.
+
+\section{Thesis Structure}
+
+The remainder of this thesis is structured as follows. Chapter 2 presents a comprehensive review of related literature. Chapter 3 describes the system architecture and design decisions. Chapter 4 details the scheduling engine implementation. Chapter 5 covers the data simulation and AI readiness work. Chapter 6 presents the testing strategy and results. Chapter 7 concludes the thesis and outlines future work.
+
+% =============================================================
+%           CHAPTER 2 — LITERATURE REVIEW
+% =============================================================
+\chapter{Literature Review}
+
+\section{Overview}
+
+This chapter surveys the academic and applied literature relevant to the key themes of this thesis: workforce scheduling as an optimisation problem, constraint-satisfaction approaches, fairness in automated scheduling, predictive analytics for demand forecasting, and the application of artificial intelligence in the hospitality industry. The review is structured thematically to build from foundational theoretical concepts toward the specific applied domain of this project.
+
+\section{Workforce Scheduling as an Optimisation Problem}
+
+Workforce scheduling—also referred to as employee timetabling, staff rostering, or personnel scheduling—has been studied as a combinatorial optimisation problem since the early 1970s. The fundamental formulation involves assigning a set of employees to a set of shifts over a planning horizon while satisfying a set of hard constraints (mandatory rules that cannot be violated) and optimising against a set of soft constraints (preferences that should be satisfied to the extent possible) \cite{ernst_et_al_2004}.
+
+Ernst et al. (2004) provide one of the most comprehensive surveys of personnel scheduling literature, cataloguing over 700 papers across industries \cite{ernst_et_al_2004}. They demonstrate that even moderately sized scheduling instances are NP-hard in the general case, meaning that exact optimal solutions become computationally intractable as problem size grows. This has motivated extensive research into approximation algorithms, metaheuristics, and constraint programming approaches.
+
+Van den Bergh et al. (2013) offer a more recent survey focused specifically on shift scheduling, distinguishing between cyclic and acyclic patterns, days-off scheduling, and tour scheduling \cite{van_den_bergh_2013}. Their taxonomy is particularly relevant to the hospitality context because demand in food-and-beverage operations is typically acyclic—driven by day-of-week and seasonal effects rather than repeating fixed patterns.
+
+\subsection{Integer Linear Programming Approaches}
+
+Integer Linear Programming (ILP) has been the dominant formal approach to workforce scheduling since the seminal work of Dantzig (1954) on airline crew scheduling \cite{dantzig_1954}. In an ILP formulation, binary decision variables $x_{e,s} \in \{0, 1\}$ indicate whether employee $e$ is assigned to shift $s$, subject to constraints on coverage, availability, contractual hours, and regulatory requirements.
+
+ILP methods guarantee optimality for instances within tractable size limits. However, as Pinedo (2016) notes, real-world scheduling instances—with dozens of employees, hundreds of shifts over a planning horizon, and complex interdependencies between assignments—rapidly exceed what commercial solvers can handle within operationally useful time frames \cite{pinedo_2016}. This motivates the use of heuristic and constraint-programming approaches.
+
+\subsection{Constraint Programming}
+
+Constraint Programming (CP) offers an alternative declarative paradigm in which the problem is specified as a set of constraints over decision variables, and a dedicated solver uses propagation and backtracking to find feasible solutions \cite{rossi_et_al_2006}. CP is particularly well-suited to scheduling problems because it naturally expresses the rich constraint structure of labour regulations and individual availability.
+
+Laborie et al. (2018) describe IBM ILOG CP Optimizer's scheduling extensions, which have been applied to large-scale industrial scheduling problems \cite{laborie_et_al_2018}. However, commercial CP solvers come with significant licensing costs, and their integration into custom software systems requires substantial engineering effort. For a research prototype like SlotMeIn, a hand-crafted constraint-satisfaction approach—as described in Chapter 4—provides the necessary transparency and extensibility.
+
+\subsection{Metaheuristic Approaches}
+
+Metaheuristics—including Genetic Algorithms (GA), Simulated Annealing (SA), Tabu Search, and Particle Swarm Optimisation—have been widely applied to scheduling problems where exact methods are intractable. Burke et al. (2004) survey the application of evolutionary algorithms to timetabling and scheduling, noting that GAs are particularly effective at exploring large solution spaces but sensitive to the encoding scheme and fitness function design \cite{burke_et_al_2004}.
+
+Simulated Annealing has been applied to nurse scheduling \cite{aickelin_dowsland_2000} and restaurant shift scheduling \cite{thompson_1997}, demonstrating its ability to escape local optima while maintaining computational feasibility. Tabu Search, introduced by Glover (1986), uses a memory structure to prevent revisiting recently explored solutions, and has shown competitive performance on cyclical scheduling problems \cite{glover_1986}.
+
+While metaheuristics offer flexibility and scalability, they do not provide optimality guarantees, and their performance is highly dependent on careful parameter tuning. For the purposes of this thesis, the scheduling engine employs a greedy, priority-based heuristic—analogous to a constructive algorithm—which is computationally efficient and produces consistent, explainable results suitable for a production environment.
+
+\section{Fairness in Automated Scheduling}
+
+Algorithmic fairness in scheduling has received growing attention in recent years, driven partly by the rise of automated decision-making systems and partly by increasing awareness of workplace equity issues. Fairness in this context refers to the equitable distribution of desirable and undesirable shifts, equitable access to weekly hours aligned with contractual entitlements, and the avoidance of systematic bias in assignment decisions \cite{lequy_et_al_2012}.
+
+Lequy et al. (2012) formalise fairness objectives in multi-skill personnel scheduling, proposing an integrated ILP model that minimises both cost and schedule imbalance \cite{lequy_et_al_2012}. Their work demonstrates that fairness and efficiency are often in tension—a finding that motivates the use of a round-robin mechanism in SlotMeIn as a tie-breaking strategy when multiple candidates achieve equal priority scores.
+
+The concept of \textit{envy-freeness}—a criterion from social choice theory requiring that no employee prefers another's schedule to their own—has been explored in the scheduling literature by Bouveret and Lemaître (2016) \cite{bouveret_lemaitre_2016}. While full envy-freeness is computationally unachievable in general scheduling instances, the round-robin mechanism used in SlotMeIn approximates this ideal by ensuring that no single candidate is systematically favoured in tie situations.
+
+\section{Predictive Analytics in Workforce Management}
+
+\subsection{Demand Forecasting Foundations}
+
+Effective workforce planning requires accurate forecasting of future demand. In the hospitality industry, demand is measured by metrics such as room occupancy rates, covers served, revenue per available room (RevPAR), and footfall. Classical time-series methods—including Exponential Smoothing, ARIMA, and Seasonal Decomposition—have been widely used for hospitality demand forecasting \cite{witt_witt_1995}.
+
+Witt and Witt (1995) provide a comprehensive review of tourism and hospitality demand forecasting methods, noting that simple models often outperform complex ones on short-horizon forecasting tasks due to overfitting risks with limited data \cite{witt_witt_1995}. This observation informs the data simulation design in Chapter 5, where care is taken to generate a dataset large and varied enough to support robust model training.
+
+\subsection{Machine Learning for Staffing Prediction}
+
+The application of machine learning to staffing prediction represents a significant advancement over classical time-series approaches. Rather than modelling a single univariate demand signal, ML models can simultaneously incorporate dozens of explanatory features: day of week, public holidays, local events, weather conditions, booking lead times, and historical occupancy data.
+
+Taylor (2018) proposes a deep learning approach to short-term staff scheduling, using a Long Short-Term Memory (LSTM) recurrent neural network to capture temporal dependencies in demand patterns \cite{taylor_2018}. The model significantly outperforms ARIMA on one-week-ahead staffing forecasts for a fast food chain. However, LSTM models require substantial training data and are difficult to interpret—a meaningful limitation in regulated labour environments where scheduling decisions must be explainable.
+
+Random Forest and Gradient Boosting methods—particularly XGBoost and LightGBM—offer a compelling middle ground: strong predictive performance on tabular data with inherent feature importance ranking that supports explainability \cite{chen_guestrin_2016}. Zaki et al. (2020) apply XGBoost to hotel operational data, achieving significantly lower staffing prediction error compared to both classical forecasting and ARIMA variants \cite{zaki_et_al_2020}.
+
+The AI readiness work in Chapter 5 adopts Gradient Boosting as the primary candidate algorithm for the SlotMeIn staffing prediction model, building on this literature.
+
+\subsection{Occupancy-Based Staffing Models}
+
+Hotel management research has long recognised the relationship between occupancy rates and staffing requirements. Siguaw and Enz (1999) document staffing ratio norms across hotel departments, providing empirical benchmarks for translating occupancy forecasts into headcount requirements \cite{siguaw_enz_1999}. More recent work by Ivanov (2014) models the dynamic relationship between occupancy and labour productivity in Eastern European hotel chains, finding that staffing efficiency varies significantly by day of week and seasonality—supporting the differentiated staffing levels (low/medium/high) implemented in SlotMeIn \cite{ivanov_2014}.
+
+\section{Artificial Intelligence in the Hospitality Industry}
+
+\subsection{General Applications}
+
+The application of AI in hospitality extends well beyond scheduling. Rangel-Martinez et al. (2021) survey AI applications across hotel operations, including chatbot-based customer service, revenue management systems, personalised recommendation engines, and predictive maintenance \cite{rangel_et_al_2021}. Their survey highlights that operational back-office applications—including workforce management—remain underserved relative to customer-facing AI applications, a gap that this thesis seeks to address.
+
+Buhalis and Leung (2018) argue that the digital transformation of hospitality requires a systemic approach in which AI applications are integrated into the operational workflows of the organisation rather than deployed as isolated point solutions \cite{buhalis_leung_2018}. This perspective strongly supports the API-first, modular architecture of SlotMeIn, which is designed to allow the AI prediction component to integrate cleanly with the existing scheduling infrastructure.
+
+\subsection{AI for Restaurant and Hotel Staffing}
+
+Focused research on AI for staffing in food-and-beverage environments is relatively sparse but growing. Saad et al. (2021) describe a machine learning system for restaurant staffing optimisation that reduces labour costs by 12\% while maintaining service quality, using a Random Forest model trained on historical covers, weather, and local event data \cite{saad_et_al_2021}. Their dataset construction methodology—which uses historical transactional data supplemented with external contextual variables—closely parallels the approach taken in the SlotMeIn data simulation notebook.
+
+Navarro et al. (2020) demonstrate the application of neural networks to shift demand prediction in a large hotel chain, achieving mean absolute percentage errors (MAPE) below 8\% on one-week-ahead forecasts \cite{navarro_et_al_2020}. Their work illustrates the feasibility of reliable short-term staffing predictions from historical operational data, supporting the thesis's claim that an AI predictive layer can meaningfully improve on static day-of-week staffing rules.
+
+\section{RESTful API Architecture for Scheduling Systems}
+
+The design of the system API follows established RESTful principles \cite{fielding_2000}. Fielding's seminal dissertation formalises REST as an architectural style characterised by statelessness, uniform interface, resource identification through URIs, and self-descriptive messages. These properties are critical for scheduling APIs, which must serve multiple client applications—including manager dashboards, employee mobile apps, and third-party integrations—without tight coupling.
+
+FastAPI, the framework underpinning SlotMeIn, is a modern Python web framework that implements RESTful design through Python type annotations and automatic OpenAPI documentation generation \cite{ramirez_2019}. Its asynchronous capabilities and native Pydantic validation make it particularly well-suited to data-intensive applications like scheduling, where input validation and type safety are critical.
+
+\section{Domain-Driven Design in Backend Systems}
+
+The SlotMeIn backend is organised according to Domain-Driven Design (DDD) principles, a software architecture philosophy introduced by Evans (2003) \cite{evans_2003}. DDD organises code around business domains rather than technical layers, grouping together the models, services, repositories, and routes that collectively implement a bounded context (e.g., ``scheduling'', ``talents'', ``constraints'').
+
+In a scheduling system, DDD is particularly valuable because it mirrors the natural conceptual structure of the domain: talents, shifts, constraints, and schedules are first-class citizens in both the business vocabulary and the code organisation. This alignment reduces the conceptual overhead of maintaining the system and makes it easier to reason about the correctness of individual domain components in isolation.
+
+\section{Summary}
+
+The literature review reveals several key insights that directly shape the design and implementation of SlotMeIn:
+
+\begin{itemize}
+    \item Workforce scheduling is a well-established combinatorial optimisation problem. For real-world production use cases, heuristic and constraint-satisfaction approaches offer the best balance of solution quality, computational efficiency, and explainability.
+    \item Algorithmic fairness is a non-trivial concern that requires deliberate design choices, such as the round-robin tie-breaking mechanism implemented in SlotMeIn.
+    \item Machine learning—particularly Gradient Boosting—offers the most promising approach for hospitality staffing prediction on tabular historical data.
+    \item The hospitality AI literature highlights a gap between customer-facing and operational AI applications, which SlotMeIn is positioned to help address.
+    \item RESTful API design and Domain-Driven Design principles provide the most appropriate architectural foundations for a modular, AI-ready scheduling system.
+\end{itemize}
+
+These findings collectively justify the technical decisions described in the following chapters.
+
+\end{document}
