@@ -362,7 +362,7 @@ The scatter plots (top row) show positive associations between both hotel occupa
 
 
 
-The temperature relationship is also positive, reflecting the role of warm weather in driving tourist activity and dining-out behaviour. The scatter pattern is somewhat noisier than the occupancy relationship. This is consistent with the regression results: the temperature coefficient is smaller in absolute terms and carries a larger standard error. The noisiness also reflects the partial correlation structure of the data. Summer days tend to be both warm and high-occupancy, so the temperature effect in the scatter plot conflates the seasonal occupancy uplift with the direct weather effect. The OLS regression disentangles these by controlling for both simultaneously.
+The temperature relationship is also positive. The scatter is noisier than the occupancy relationship. This is consistent with the regression: the temperature coefficient is smaller and carries a larger standard error. Part of the noise is structural. Summer days tend to be both warm and high-occupancy at the same time, so the raw scatter conflates the two effects. Including both signals in the OLS regression separates their independent contributions.
 
 The box plots (bottom row) reveal systematic variation by day of week, season, and occasion type. The day-of-week pattern shows a progressively rising median from Monday through Saturday, with Sunday showing a modest retreat. This approximately monotonic pattern is consistent with treating day of week as an ordinal integer (0--6) in the regression rather than as a set of six dummy variables. The ordinal encoding assumes the day-of-week effect is monotonically increasing, and the data appear to support this.
 
