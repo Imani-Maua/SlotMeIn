@@ -187,7 +187,7 @@ This thesis presents \textit{SlotMeIn}, an intelligent workforce scheduling syst
 
 The Machine Learning demand tiered model is the intellectual core of this work. The thesis demonstrates, through exploratory analysis of real cover data from a Budapest city hotel restaurant, that afternoon cover volumes are significantly predicted by hotel occupancy, mean daily temperature, day of week, season, and the presence of Hungarian public holidays. An ordinary least squares regression fitted to 294 days of observed cover counts yields an adjusted $R^2$ of 0.43, confirming that nearly half the variance in demand is explained by observable contextual signals before a single customer arrives. A classification model trained on synthetic data derived from these empirical relationships achieves 92.9\% test accuracy on afternoon tiers and 98.4\% on morning tiers, demonstrating that the demand signal is learnable and strong enough to support automated staffing decisions.
 
-The scheduling component underwent its own developmental progression. An initial greedy constructive heuristic was replaced by a CP-SAT constraint programming solver, enabling richer constraint specification, backtracking search, and a weighted objective function that jointly optimizes coverage, hours balance, and fairness. This progression from greedy to CP-SAT is itself a substantive contribution: it illustrates the practical limitations that motivate the move from heuristic to declarative constraint programming in operational scheduling.
+The scheduling component underwent its own developmental progression. An initial greedy constructive heuristic was replaced by a CP-SAT constraint programming solver \citep{ortools2024}, enabling richer constraint specification, backtracking search, and a weighted objective function that jointly optimizes coverage, hours balance, and fairness. This progression from greedy to CP-SAT is itself a substantive contribution: it illustrates the practical limitations that motivate the move from heuristic to declarative constraint programming in operational scheduling.
 
 %\subsection*{Research Objectives}
 This thesis aims to establish, through systematic exploratory analysis of real operational data, that the demand for F&B services at a Budapest city hotel is significantly driven by observable contextual signals including hotel occupancy, temperature, seasonality, day of the week, and public holidays.  Building on these findings, it develops and statistically validates a data simulation methodology for generating synthetic training data that represents observed demand distribution, using the Kolmogorov-Smirnov test.
@@ -315,7 +315,7 @@ Hungarian holidays & 2023--2026 & Deterministic \\
 
 \paragraph{Hotel bookings:} Daily occupancy percentage was computed from 119,390 individual booking records extracted from the hotel's property management system. For each calendar day, occupancy is defined as the number of occupied rooms divided by total room capacity, expressed as a percentage. This provides a continuous, real-valued demand signal that is known before the day begins and is directly available to management through standard PMS reporting.
 
-\paragraph{Weather data:} Daily temperature records (maximum, minimum, and mean) for Budapest were obtained from the Open-Meteo historical weather API, a freely available, peer-reviewed meteorological data source. Temperature serves as a proxy for tourism intensity and guest dining behaviour: warm summer days drive outdoor activity and guest dining, while extreme cold suppresses walk-in traffic.
+\paragraph{Weather data:} Daily temperature records (maximum, minimum, and mean) for Budapest were obtained from the Open-Meteo historical weather API \citep{openmeteo2023}, a freely available, peer-reviewed meteorological data source. Temperature serves as a proxy for tourism intensity and guest dining behaviour: warm summer days drive outdoor activity and guest dining, while extreme cold suppresses walk-in traffic.
 
 \paragraph{Hungarian public holidays:} All eleven official Hungarian public holidays were encoded as binary indicators, along with four operationally significant dates (Christmas Eve, New Year's Eve, Valentine's Day, and Easter Sunday) that drive material demand changes even though they are not official statutory holidays. Movable holidays were computed programmatically from the Gregorian calendar using the \texttt{dateutil.easter} algorithm.
 
@@ -323,8 +323,6 @@ These four sources were joined on calendar date to produce a unified feature tab
 
 \begin{table}[H]
 \centering
-\caption{First five rows of the unified feature table ($n = 294$).}
-\label{tab:featurehead}
 \small
 \renewcommand{\arraystretch}{1.3}
 \begin{tabular}{@{}lrrllrrrr@{}}
@@ -340,6 +338,8 @@ These four sources were joined on calendar date to produce a unified feature tab
 \multicolumn{9}{@{}l}{\small WE = is\_weekend flag (1 = weekend). Temp in °C.}
 \end{tabular}
 \renewcommand{\arraystretch}{1}
+\caption{First five rows of the unified feature table ($n = 294$).}
+\label{tab:featurehead}
 \end{table}
 
 \subsection{Exploratory Analysis and Data Partitioning}
@@ -640,60 +640,72 @@ The training set contains 2,000 synthetic observations generated as described in
 
 A naive chronological split holding out the last 20\% of dates would fall entirely in winter and early spring, making it impossible to evaluate the model on High-demand summer conditions. The season-stratified design preserves temporal ordering within each season while ensuring all demand regimes are represented in the evaluation.
 
-\subsection{Model: Random Forest}
+\subsection{Candidate Models}
 
-A Random Forest classifier \citep{breiman2001} is trained on the 2,000 synthetic observations. The forest consists of 200 decorrelated decision trees with balanced class weights, assigning each class a weight inversely proportional to its frequency in the training set. Random Forest was selected for this task on the grounds of interpretability and robustness: the algorithm does not require feature scaling, is robust to irrelevant features, and produces feature importance rankings that can be directly compared against the OLS regression coefficients to validate that the model has learned the same demand structure identified in the statistical analysis.
+Four approaches are trained and evaluated on identical data: the same 2,000 synthetic training observations and the same 56 real held-out test days. This allows direct comparison of methods ranging from a simple occupancy rule to a gradient-boosted ensemble, and validates that the chosen model has genuinely learned the demand structure rather than benefiting from favourable data artefacts.
 
-\subsection{Results}
+\subsubsection{Rule-Based Baseline}
 
-\subsubsection{Test Set Accuracy}
+The simplest possible baseline applies the same occupancy-threshold rule used for morning-tier staffing directly to the afternoon shift: occupancy at or below 35\% maps to Low, 36\%--65\% to Medium, and above 65\% to High. This baseline requires no training data and makes no use of temperature, day-of-week, season, or special-day signals. Its accuracy ceiling is therefore determined entirely by how strongly hotel occupancy alone predicts afternoon demand tier -- a single-signal comparator against which the trained models must demonstrably improve.
 
-The Random Forest achieves 55\% accuracy on 56 real held-out days. For reference, chance accuracy on a balanced 3-class problem is 33\%, so the model is performing substantially above random. The model identifies High-demand days most reliably (71\% recall) and struggles most with Medium-tier days (36\% recall), where the signal boundary between Low and High demand is least sharp. Table~\ref{tab:accuracy} summarises per-class performance.
+\subsubsection{Logistic Regression}
+
+A logistic regression classifier is fitted with balanced class weights on standardised features (zero mean, unit variance). Because the OLS regression already demonstrated that cover volume is approximately linearly related to the six input features, a linear classifier trained on the same feature set is a natural comparator: it tests whether the demand-tier boundary is well-approximated by a hyperplane in the feature space, or whether non-linear methods are necessary.
+
+\subsubsection{Random Forest}
+
+A Random Forest classifier \citep{breiman2001} is trained on the 2,000 synthetic observations, consisting of 200 decorrelated decision trees with balanced class weights. Random Forest does not require feature scaling and produces feature importance rankings that can be directly compared against the OLS regression coefficients, providing a cross-method validation of which signals drive demand.
+
+\subsubsection{XGBoost}
+
+XGBoost \citep{chen2016} is a gradient-boosted tree ensemble that constructs trees sequentially, each correcting the residual errors of its predecessors. It uses the same 200-estimator budget as the Random Forest to ensure a fair comparison of algorithmic approach rather than compute allocation.
+
+\subsection{Model Comparison and Results}
+\label{sec:results}
+
+Table~\ref{tab:modelcomp} summarises the performance of all four approaches on the 56 real held-out test days.
 
 \begin{table}[H]
 \centering
-\caption{Random Forest afternoon tier model -- test set performance on 56 real days.}
-\label{tab:accuracy}
+\caption{Comparison of all four models on 56 real test days (season-stratified split).}
+\label{tab:modelcomp}
 \small
-\begin{tabular}{@{}lcccc@{}}
+\begin{tabular}{@{}lccccc@{}}
 \toprule
-\textbf{Tier} & \textbf{Precision} & \textbf{Recall} & \textbf{F1} & \textbf{Support} \\
+\textbf{Model} & \textbf{Accuracy} & \textbf{Low F1} & \textbf{Med F1} & \textbf{High F1} & \textbf{Macro F1} \\
 \midrule
-Low    & 0.44 & 0.65 & 0.52 & 17 \\
-Medium & 0.47 & 0.36 & 0.41 & 22 \\
-High   & 0.86 & 0.71 & 0.77 & 17 \\
-\midrule
-\textbf{Overall accuracy} & \multicolumn{4}{c}{\textbf{55\%}} \\
+Rule-Based           & 44.6\% & 0.35 & 0.50 & 0.44 & 0.43 \\
+Logistic Regression  & 62.5\% & 0.59 & 0.38 & 0.89 & 0.62 \\
+Random Forest        & 55.4\% & 0.52 & 0.41 & 0.77 & 0.57 \\
+XGBoost              & 57.1\% & 0.54 & 0.45 & 0.77 & 0.59 \\
 \bottomrule
-\multicolumn{5}{@{}l}{\small Season-stratified test split, $n=56$ real afternoon days.}
+\multicolumn{6}{@{}l}{\small Season-stratified test split, $n=56$ real afternoon days.}
 \end{tabular}
 \end{table}
 
-The 55\% accuracy reflects a feature-constrained training environment. The model was trained on six features drawn from available operational data. The research literature identifies several additional demand drivers that were not available in this study's data pipeline. Local events -- concerts, conferences, and festivals near the property -- are a recognised distinct demand driver category in restaurant forecasting \citep{lasek2016}. Online review sentiment has been shown to add measurable predictive power beyond traditional quantitative signals in hotel demand forecasting \citep{wu2024}. Advance booking data is identified as the single most important short-term demand signal in hotel contexts, outperforming all time-series baselines \citep{lee2018}. City-level tourism arrival volume provides a demand signal independent of hotel occupancy \citep{sun2019}, and spatial modelling of competitor restaurant activity has been shown to substantially improve daily demand predictions in urban settings \citep{liu2025}. None of these data sources were available to this study: no event calendar API was integrated, review data was not scraped at daily granularity, the advance booking pipeline was not exported from the property management system, Budapest daily tourist arrival counts are not published in machine-readable form, and no spatial restaurant dataset was assembled. Each represents a concrete direction for future work that would be expected to drive classification accuracy beyond the current 55\%.
+The rule-based baseline achieves 44.6\% accuracy, confirming that hotel occupancy alone is a meaningful but insufficient predictor -- it performs 34 percentage points above chance on a balanced three-class problem but leaves 55\% of days misclassified, motivating the use of trained classifiers that exploit the full feature set.
 
-\subsubsection{Confusion Matrix}
+Logistic Regression achieves the highest overall accuracy at 62.5\% and the highest macro F1 score (0.62), with an F1 of 0.89 on High-demand days. This finding is substantively important: it indicates that the demand-tier relationship is essentially linear, consistent with the OLS regression through which the feature set was derived. The six demand signals selected through statistical testing are jointly sufficient to produce a strong linear classifier, and the non-linear ensemble methods do not materially improve on this linear baseline in the available data.
 
-Figure~\ref{fig:confmats} shows the confusion matrix for the Random Forest on the held-out test set.
+Random Forest and XGBoost achieve 55.4\% and 57.1\% accuracy respectively -- both well above the rule-based baseline but below Logistic Regression. The two ensemble methods identify High-demand days with identical F1 (0.77) and are separated by only 1.7 percentage points overall, suggesting they capture similar structure in the feature space. The Medium tier is the hardest category across all four models, consistent with the OLS finding that Medium-demand days occupy the interior of the feature space where the boundary between Low and High is least sharp.
+
+Figure~\ref{fig:confmats} shows the confusion matrices for all four models. Figure~\ref{fig:importances} presents the Random Forest feature importances as an additional interpretability check: the ranking is consistent with the OLS regression coefficients, with occupancy and temperature as the dominant signals. The alignment between regression coefficients and classifier importances provides cross-method evidence that both approaches have correctly identified the same underlying demand drivers.
 
 \begin{figure}[H]
 \centering
-\includegraphics[width=\textwidth]{figures/confusion_matrix.png}
-\caption{Confusion matrix for the Random Forest afternoon tier model,trained on synthetic data and tested on 56 real days. High-demand days are identified most reliably; Medium-tier days are most often misclassified as Low, while Low-High confusion is rare.}
+\includegraphics[width=\textwidth]{figures/confusion_matrix_comparison.png}
+\caption{Confusion matrices for all four models on 56 real test days. Left to right: Rule-Based, Logistic Regression, Random Forest, XGBoost. Logistic Regression shows the cleanest High-demand identification; the rule-based baseline struggles most with Low-tier days.}
 \label{fig:confmats}
 \end{figure}
 
-\subsubsection{Feature Importances}
-
-Figure~\ref{fig:importances} presents the feature importance rankings for the trained Random Forest.
-
 \begin{figure}[H]
 \centering
-\includegraphics[width=\textwidth]{feature_importance.png}
-\caption{Random Forest feature importances for the afternoon tier model. Occupancy and temperature are the dominant signals, consistent with the OLS regression coefficients. Season dummies and special-day flag contribute meaningfully despite their binary nature.}
+\includegraphics[width=\textwidth]{figures/feature_importance_rf.png}
+\caption{Random Forest feature importances for the afternoon tier model. Occupancy and temperature are the dominant signals, consistent with the OLS regression coefficients.}
 \label{fig:importances}
 \end{figure}
 
-The feature importance ranking is consistent with the OLS regression: occupancy and temperature are the dominant continuous signals, reflecting the demand mechanisms identified in the exploratory analysis. The alignment between regression coefficients and classifier feature importances provides cross-validation that the pipeline has correctly captured the demand structure -- two independent statistical methods agree on which signals matter.
+Random Forest is selected as the production model deployed in the integration layer. Although Logistic Regression achieves higher accuracy on this test set, Random Forest is preferred for two reasons. First, its feature importance mechanism provides model-level interpretability that directly supports the thesis argument about which demand signals matter. Second, as additional demand signals are integrated in future work -- advance booking data, local events, online review sentiment -- the non-linear capacity of an ensemble method is expected to provide increasing advantage over a linear classifier.
 
 \subsection{Integration Architecture}
 
@@ -707,6 +719,8 @@ This wrapper is a drop-in replacement for the static day-of-week staffing rule p
 % =============================================================================
 \section{Scheduler Design and Evolution}
 \label{sec:scheduler}
+
+This section traces the development of the SlotMeIn scheduling engine from its initial greedy implementation through to the CP-SAT constraint programming formulation. It describes the formal structure of the scheduling problem, the hard constraints derived from EU and Hungarian labour law, and the weighted objective function that balances shift coverage, hours fairness, and overwork penalties. The section closes by demonstrating how the trained ML tier model was integrated into the CP-SAT engine to produce occupancy-aware schedules.
 
 \subsection{The Scheduling Problem}
 
@@ -878,6 +892,12 @@ Kimes, S.~E. (1989).
 \newblock \textit{Journal of Operations Management}, 8(4):348--363.
 \newblock DOI: 10.1016/0272-6963(89)90035-1.
 
+\bibitem[Zippenfenig(2023)]{openmeteo2023}
+Zippenfenig, P. (2023).
+\newblock Open-Meteo.com Weather API.
+\newblock Zenodo.
+\newblock DOI: 10.5281/zenodo.7970649.
+
 \bibitem[Perron and Furnon(2024)]{ortools2024}
 Perron, L. and Furnon, V. (2024).
 \newblock {OR-Tools}.
@@ -898,6 +918,12 @@ Ben Said, A. and Mouhoub, M. (2024).
 Breiman, L. (2001).
 \newblock Random forests.
 \newblock \textit{Machine Learning}, 45(1):5--32.
+
+\bibitem[Chen and Guestrin(2016)]{chen2016}
+Chen, T. and Guestrin, C. (2016).
+\newblock {XGBoost}: A scalable tree boosting system.
+\newblock In \textit{Proceedings of the 22nd ACM SIGKDD International Conference on Knowledge Discovery and Data Mining}, pages 785--794.
+\newblock DOI: 10.1145/2939672.2939785.
 
 \bibitem[Ernst et~al.(2004)]{ernst2004}
 Ernst, A.~T., Jiang, H., Krishnamoorthy, M., and Sier, D. (2004).
