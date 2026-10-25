@@ -33,6 +33,8 @@
 \graphicspath{{figures/}}
 \usepackage{subcaption}
 \usepackage{float}
+\usepackage{tikz}
+\usetikzlibrary{shapes.rounded,arrows.meta,positioning}
 \usepackage{booktabs}
 \usepackage{amsmath,amssymb,amsfonts}
 \usepackage{amsthm}
@@ -571,8 +573,45 @@ The full synthetic data generation pipeline produces 2,000 training observations
 
 \paragraph{Step 4: Clipping and tier labelling.} Cover counts are clipped to zero and bucketed into three demand tiers using empirical tertile thresholds computed from the real distribution: LOW for counts up to 182, MEDIUM for 182--305, and HIGH for counts above 305.
 
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    node distance=0.55cm,
+    box/.style={
+        rectangle, rounded corners=4pt, draw=black!60, fill=blue!7,
+        text width=10cm, minimum height=1cm, align=center, font=\small
+    },
+    endbox/.style={
+        rectangle, rounded corners=4pt, draw=black!60, fill=gray!12,
+        text width=10cm, minimum height=1cm, align=center, font=\small\bfseries
+    },
+    arr/.style={-{Stealth}, thick}
+]
+\node[endbox] (src)  {294 Real Afternoon Cover Observations};
+\node[box, below=of src] (s1)
+    {\textbf{Step 1 — Row Sampling}\\[2pt]
+     Sample entire rows with replacement to preserve joint feature correlations};
+\node[box, below=of s1] (s2)
+    {\textbf{Step 2 — OLS Prediction}\\[2pt]
+     Apply fitted regression (Eq.~\ref{eq:ols}) to obtain the predicted cover count};
+\node[box, below=of s2] (s3)
+    {\textbf{Step 3 — Residual Injection}\\[2pt]
+     Add an independently sampled real residual to capture unpredictable variability};
+\node[box, below=of s3] (s4)
+    {\textbf{Step 4 — Clip and Label}\\[2pt]
+     Clip to zero; assign \textit{Low} (${\leq}182$), \textit{Medium} (183--305), or \textit{High} ($>305$)};
+\node[endbox, below=of s4] (out)
+    {2,000 Synthetic Training Observations (KS-validated, $p = 0.408$)};
 
-
+\draw[arr] (src) -- (s1);
+\draw[arr] (s1) -- (s2);
+\draw[arr] (s2) -- (s3);
+\draw[arr] (s3) -- (s4);
+\draw[arr] (s4) -- (out);
+\end{tikzpicture}
+\caption{Synthetic data generation pipeline. Each of the 2,000 training observations is produced by executing the four steps in sequence. Row sampling preserves the joint feature distribution observed in real data. Residual injection introduces realistic stochastic variation that the regression cannot explain.}
+\label{fig:synth_pipeline}
+\end{figure}
 
 \subsubsection{Alternative Approaches Considered}
 
