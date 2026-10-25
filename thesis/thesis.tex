@@ -724,7 +724,7 @@ XGBoost              & 57.1\% & 0.54 & 0.45 & 0.77 & 0.59 \\
 \end{tabular}
 \end{table}
 
-The rule-based baseline achieves 44.6\% accuracy. Hotel occupancy alone is a meaningful but insufficient predictor. The baseline performs 11 percentage points above chance on a balanced three-class problem, yet leaves 55\% of days misclassified. This motivates the use of trained classifiers that exploit the full feature set.
+The rule-based baseline achieves 44.6\% accuracy. Hotel occupancy alone is a meaningful but insufficient predictor. The baseline performs 11 percentage points above chance on a balanced three-class problem, yet leaves 55.4\% of days misclassified. This motivates the use of trained classifiers that exploit the full feature set.
 
 Logistic Regression achieves the highest overall accuracy at 62.5\% and the highest macro F1 score (0.62), with an F1 of 0.89 on High-demand days. This finding is substantively important. It indicates that the demand-tier relationship is essentially linear, consistent with the OLS regression through which the feature set was derived. The six demand signals selected through statistical testing are jointly sufficient to produce a strong linear classifier. The non-linear ensemble methods do not materially improve on this baseline given the available data.
 
