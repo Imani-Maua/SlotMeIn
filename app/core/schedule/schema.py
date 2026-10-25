@@ -49,6 +49,7 @@ class ScheduleOut(BaseModel):
     week_end: date
     status: str
     assignments: list[AssignmentOut] = []
+    staffing_requirements: list[Any] = []
 
     class Config:
         from_attributes = True
@@ -59,6 +60,7 @@ class ScheduleCreate(BaseModel):
     week_end: date
     assignments: list[AssignmentBase]
     status: str = "final"   # 'draft' or 'final'
+    staffing_requirements: list[Any] = []
 
 
 class StatusUpdate(BaseModel):

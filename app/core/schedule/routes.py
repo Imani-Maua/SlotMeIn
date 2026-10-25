@@ -30,6 +30,7 @@ def _serialize_schedule(schedule: Schedule):
         "week_start": schedule.week_start,
         "week_end":   schedule.week_end,
         "status":     schedule.status,
+        "staffing_requirements": schedule.staffing_requirements or [],
         "assignments": [
             {
                 "id":          assignment.id,

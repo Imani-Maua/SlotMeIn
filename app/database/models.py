@@ -1,6 +1,6 @@
 from datetime import date, time, datetime
 from typing import List, Optional
-from sqlalchemy import ForeignKey, String, Integer, Boolean, Numeric, Date, Time, DateTime, func
+from sqlalchemy import ForeignKey, String, Integer, Boolean, Numeric, Date, Time, DateTime, JSON, func
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
@@ -103,6 +103,7 @@ class Schedule(Base):
     week_start: Mapped[date] = mapped_column(Date)
     week_end: Mapped[date] = mapped_column(Date)
     status: Mapped[str] = mapped_column(String, default="draft")
+    staffing_requirements: Mapped[Optional[list]] = mapped_column(JSON, nullable=True, default=None)
 
     scheduled_shifts: Mapped[List["ScheduledShift"]] = relationship(back_populates="schedule", cascade="all, delete-orphan")
 

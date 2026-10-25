@@ -392,14 +392,17 @@ class UnderstaffedShifts:
         self.assignable_shifts = assignable_shifts
         self.assigned_shifts = assigned_shifts
 
-    def get_all(self) -> list:
-        assigned_count = {}
+    def _assigned_count(self) -> dict:
+        counts = {}
         for a in self.assigned_shifts:
-            assigned_count[a.shift_id] = assigned_count.get(a.shift_id, 0) + 1
+            counts[a.shift_id] = counts.get(a.shift_id, 0) + 1
+        return counts
 
+    def get_all(self) -> list:
+        counts = self._assigned_count()
         understaffed = []
         for shift_id, shift in self.assignable_shifts.items():
-            assigned = assigned_count.get(shift_id, 0)
+            assigned = counts.get(shift_id, 0)
             if assigned < shift.role_count:
                 understaffed.append({
                     "shift_id":   shift_id,
@@ -410,3 +413,17 @@ class UnderstaffedShifts:
                     "missing":    shift.role_count - assigned,
                 })
         return understaffed
+
+    def get_all_slots(self) -> list:
+        counts = self._assigned_count()
+        slots = []
+        for shift_id, shift in self.assignable_shifts.items():
+            assigned = counts.get(shift_id, 0)
+            slots.append({
+                "shift_id":   shift_id,
+                "shift_name": shift.shift_name,
+                "role":       shift.role_name.value,
+                "required":   shift.role_count,
+                "assigned":   assigned,
+            })
+        return slots

@@ -53,10 +53,12 @@ class SchedulingService:
         ).generate_schedule()
         log.info("schedule_generation: schedule_generated", assignments=len(plan))
 
-        understaffed = UnderstaffedShifts(
+        shift_tracker = UnderstaffedShifts(
             assignable_shifts=assignable_shifts,
             assigned_shifts=plan,
-        ).get_all()
+        )
+        understaffed = shift_tracker.get_all()
+        staffing_requirements = shift_tracker.get_all_slots()
         log.info("schedule_generation: understaffed_computed", count=len(understaffed))
 
         return {
@@ -75,5 +77,6 @@ class SchedulingService:
                 for i, assignment in enumerate(plan)
             ],
             "understaffed": understaffed,
+            "staffing_requirements": staffing_requirements,
         }
 

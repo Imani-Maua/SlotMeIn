@@ -29,7 +29,8 @@ class ScheduleRepository:
                 f"already exists (ID {existing.id})."
             )
 
-        saved = Schedule(week_start=data.week_start, week_end=data.week_end, status=data.status)
+        saved = Schedule(week_start=data.week_start, week_end=data.week_end, status=data.status,
+                         staffing_requirements=data.staffing_requirements or None)
         self.db.add(saved)
         self.db.flush()
 

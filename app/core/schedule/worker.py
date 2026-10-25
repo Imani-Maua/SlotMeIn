@@ -81,6 +81,7 @@ def process_job(job_id: str, start_date_str: str, store: JobResultStore, publish
                 )
                 for a in result["assignments"]
             ],
+            staffing_requirements=result.get("staffing_requirements", []),
         ))
         log.info("csp_scheduler_draft_saved", job_id=job_id, schedule_id=saved.id)
 
