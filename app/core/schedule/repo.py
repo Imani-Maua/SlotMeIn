@@ -1,5 +1,5 @@
 from datetime import datetime, date, timedelta
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from app.database.models import Schedule, ScheduledShift
 from app.core.schedule.schema import AssignmentIn, AssignmentUpdate, ScheduleCreate
 from app.core.schedule.allocator.entities import assignment
@@ -13,7 +13,12 @@ class ScheduleRepository:
 
 
     def get_all(self) -> list[Schedule]:
-        return self.db.query(Schedule).order_by(Schedule.week_start.desc()).all()
+        return (
+            self.db.query(Schedule)
+            .options(joinedload(Schedule.scheduled_shifts))
+            .order_by(Schedule.week_start.desc())
+            .all()
+        )
 
     def get_by_id(self, schedule_id: int) -> Schedule | None:
         return self.db.query(Schedule).filter(Schedule.id == schedule_id).first()

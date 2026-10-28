@@ -4,11 +4,12 @@ from sqlalchemy import insert
 from datetime import datetime, timedelta
 from jose import jwt,JWTError, ExpiredSignatureError
 import uuid
+import hashlib
 from app.config.config import Settings
 from app.database.auth import InviteToken, AccessToken
 from app.core.utils.enums import TokenType
 from app.authentication.tokens.schema import Payload
-from app.authentication.utils.password_utils import verify_password, hash_password
+from app.authentication.utils.password_utils import verify_password
 
 
 settings = Settings()
@@ -31,7 +32,7 @@ class TokenService:
     
     @staticmethod
     def store_token(db: Session, data: Payload, jwt: str):
-        token = hash_password(jwt)
+        token = hashlib.sha256(jwt.encode()).hexdigest()
         if data.type == TokenType.invite.value:
             stmt = (insert(InviteToken).values(token_hash=token, user_id=data.id, jti=data.jti, expires_at=data.exp, created_at=data.iat).returning(InviteToken))
             result = db.execute(stmt)
@@ -112,7 +113,7 @@ class TokenService:
         )
     
         stored_hash = token_object.token_hash
-        if not verify_password(password=token, hash=stored_hash):
+        if hashlib.sha256(token.encode()).hexdigest() != stored_hash:
             raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid token",
