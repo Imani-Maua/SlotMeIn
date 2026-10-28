@@ -5,9 +5,11 @@ All mutating routes require authentication. The list_users and send_invite
 endpoints are restricted to superusers only.
 """
 
-from fastapi import APIRouter, Depends, Body, HTTPException, status
+from fastapi import APIRouter, Depends, Body, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 from typing import Annotated, List
 from app.authentication.users.schema import CreateUser, InviteTarget, NewPassword, UserOut
 from app.authentication.tokens.schema import TokenIn, TokenOut
@@ -17,6 +19,7 @@ from app.authentication.utils.auth_utils import get_current_user
 from app.database.auth import User
 
 auth_router = APIRouter(tags=['Users'])
+limiter = Limiter(key_func=get_remote_address)
 
 
 def require_superuser(current_user: User = Depends(get_current_user)) -> User:
@@ -62,7 +65,9 @@ def accept_invite(data: Annotated[NewPassword, Body()],
 
 
 @auth_router.post("/login_token")
-async def login_for_access_token(form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
+@limiter.limit("10/minute")
+async def login_for_access_token(request: Request,
+                                 form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
                                  db: Annotated[Session, Depends(session)]):
     login = UserService.login(form_data=form_data, db=db)
     return login

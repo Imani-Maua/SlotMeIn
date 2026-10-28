@@ -14,5 +14,6 @@ pydantic[email]
 psycopg2-binary
 python-multipart
 structlog>=24.0
+slowapi>=0.1.9
 pytest==9.0.2
 alembic>=1.13
