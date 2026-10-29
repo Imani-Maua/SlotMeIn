@@ -15,6 +15,5 @@ scripts
 .ipynb_checkpoints/
 *.xlsx
 *.pdf
-*.pkl
 notebooks/
 data/
