@@ -11,7 +11,7 @@ from app.core.schedule.schema import (
     inputDate, ScheduleOut, AssignmentOut, AssignmentUpdate,
     AssignmentIn, ScheduleCreate, StatusUpdate,
 )
-from app.core.schedule.config_store import SchedulerConfig
+from app.core.schedule.config_store import SchedulerConfig, SchedulerConfigStore
 from app.core.schedule.repo import ScheduleRepository
 from app.database.models import Schedule
 from app.authentication.utils.auth_utils import get_current_user
@@ -73,7 +73,6 @@ async def generate_schedule(
     redis_client: Annotated[redis.Redis, Depends(get_redis)],
 ):
     from app.core.schedule.worker import process_job
-    from app.core.schedule.config_store import SchedulerConfigStore
     from app.redis.event_publisher import EventPublisher
     import uuid
 
