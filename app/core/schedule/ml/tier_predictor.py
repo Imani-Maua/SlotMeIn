@@ -42,16 +42,14 @@ def _load():
     def _pkl(name):
         return joblib.load(_MODEL_DIR / name)
 
+    afternoon = {
+        "model":    _pkl("tier_model_afternoon.pkl"),
+        "features": _pkl("tier_feature_cols_afternoon.pkl"),
+    }
     return {
-        "morning": {
-            "model":    _pkl("tier_model_morning.pkl"),
-            "features": _pkl("tier_feature_cols_morning.pkl"),
-        },
-        "afternoon": {
-            "model":    _pkl("tier_model_afternoon.pkl"),
-            "features": _pkl("tier_feature_cols_afternoon.pkl"),
-        },
-        "encoder": _pkl("tier_label_encoder.pkl"),
+        "morning":   afternoon,
+        "afternoon": afternoon,
+        "encoder":   _pkl("tier_label_encoder.pkl"),
     }
 
 
