@@ -6,7 +6,7 @@ settings = Settings()
 
 
 database = settings.DATABASE_URL
-engine = create_engine(database, echo=False, pool_pre_ping=True, pool_recycle=300)
+engine = create_engine(database, echo=False, pool_pre_ping=True, pool_recycle=300, pool_size=3, max_overflow=2)
 SessionLocal = sessionmaker(autoflush=False, autocommit=False, bind=engine)
 
 def session():
