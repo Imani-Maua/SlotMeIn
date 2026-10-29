@@ -42,6 +42,8 @@
 \lstset{
     basicstyle=\small\ttfamily\color{codetext},
     breaklines=true,
+    breakatwhitespace=false,
+    columns=flexible,
     frame=single,
     framerule=0.5pt,
     rulecolor=\color{gray!50},
@@ -180,11 +182,11 @@ Maua Elaine Imani\\
 
 %\subsection*{Background and Motivation}
 
-To the naked eye, creating a weekly schedule is a simple task, almost like a simple for loop. For each employee, for each shift, if a shift slot is empty, assign employee to shift. However, scheduling the right number of employees for a week is a brittle task that involves a lot more variables --  demand changes day to day, employees are bound by certain legal working hours, labor laws enforce additional constraints, and shifts need to be distributed fairly across a team. There are also sudden happenings like cancellations and large last-minute bookings that the same schedule needs to adapt to. The needs of a restaurant on Monday may look very different from Tuesday. In fact, the needs of a Monday morning may look very different from the same Monday's afternoon. Despite all this, most hospitality businesses still schedule by hand -- a fixed rota adjusted from memory and experience \citep{thompson2004}.
+To the naked eye, creating a weekly schedule is a simple task, almost like a simple for loop. For each employee, for each shift, if a shift slot is empty, assign employee to shift. However, scheduling the right number of employees for a week is a complex task that involves a lot more variables --  demand changes day to day, employees are bound by certain legal working hours, labor laws enforce additional constraints, and shifts need to be distributed fairly across a team. There are also sudden happenings like cancellations and large last-minute bookings that the same schedule needs to adapt to. The needs of a restaurant on Monday may look very different from Tuesday. In fact, the needs of a Monday morning may look very different from the same Monday's afternoon. Despite all this, most hospitality businesses still schedule by hand or using excel completely dependent on memory and experience \citep{thompson2004}.
 
 Manual scheduling is incapable of responding to the full range of demand signals that drive customer volumes. An experienced manager could possibly make good calls regarding an approaching holiday or an in-house event.  They could even reasonably infer that since occupancy of the larger hotel is high, then the restaurant outlet would also be busy. It becomes a completely different matter when they have to simultaneously integrate hotel occupancy rates, daily temperature forecasts, day-of-week patterns, and seasonal trends into a coherent staffing decision. Doing so across five distinct roles for two or three shift periods in a given day, seven days a week, for all the employees in the pool exceeds what any single person, no matter the experience, can reliably handle. In practice, this means that a manager schedules the same headcount week after week, regardless of whether the hotel is nearly full or sitting at 25\% occupancy \citep{choi2009}.
 
-This demand-blind scheduling is costly both for the team on the floor and the business. Overstaffing on low-demand days means that there are people on the floor being paid yet they have no reasonable impact on the business. And for the staff, it often means being sent home early with fewer hours than expected. Understaffing on busy days cuts the other way: the team is overwhelmed, service quality drops, and covers get lost when guests cannot be seated or served adequately \citep{choi2009}. Poor service quality compounds the problem further. A guest who had a bad experience is unlikely to return, and if they leave a review, one who reads those reviews may never visit at all \citep{sparks2011}. These outcomes are completely avoidable. The demand signals that drive these numbers are observable weeks or days in advance. For instance, hotel occupancy forecasts are available through the property management system (PMS), temperature forecasts are freely available, and holidays are deterministic. The challenge is then not the information but a mechanism that translates that information into staffing decisions.
+Scheduling without considering demand is costly for staff and the business itself,  not just the managers.  Overstaffing when the demand is low means there's staff on the floor being paid without meaningful contribution to the business. For the staff, it means they are sent home earlier than expected. While this is not the worst possible outcome, it also just means that the salary also takes a hit.  Understaffing on busy days cuts the other way: the team is overwhelmed, service quality drops, and covers get lost when guests cannot be seated or served adequately \citep{choi2009}. Poor service quality compounds the problem further. A guest who had a bad experience is unlikely to return. Worse, if they leave bad reviews, another possible guest who reads those reviews may never visit at all \citep{sparks2011}. These outcomes are completely avoidable. The demand signals that drive these numbers are observable weeks or days in advance.  Hotel occupancy forecasts are available through the property management system (PMS), temperature forecasts are freely available, and holidays are deterministic. The challenge is then not the information but a mechanism that translates that information into staffing decisions.
 
 This thesis presents \textit{SlotMeIn}, a scheduling engine designed for hotel food and beverage operations. The engine addresses the scheduling challenge, first using a machine learning component, then with a constraint-satisfier scheduler. The machine learning component is trained on real operational data and learns patterns between the demand signals to predict a tier, either Low, Medium, or High, for each shift period on each day. The constraint satisfier scheduler then uses these predicted demand tiers to determine the headcount and generate a compliant assignment that reflects the needs of a given day.
 
@@ -301,7 +303,7 @@ Hungarian holidays & 2023--2026 & Deterministic \\
 \paragraph{Afternoon covers:} These are the actual headcounts of the guests who came to the restaurant in the afternoon, collected over 15 months.  These were normalized by dividing by the 95th percentile of the distribution, used as a full-house proxy. The resulting rates run from 0.0 to 1.0, with a mean of 0.65 and standard deviation of 0.22.
 
 
-\paragraph{Hotel bookings:} These are daily occupancy rates computed from 119,390 booking records pulled from the hotel's property management system. Occupancy is expressed as a percentage of total occupancy. It is available to management before the day starts through standard PMS reporting.
+\paragraph{Hotel bookings:} These are daily occupancy rates computed from 119,390 booking records pulled from the hotel's property management system. 
 
 
 \paragraph{Weather data:} These are daily temperature records for Budapest, obtained from the Open-Meteo historical weather API \citep{openmeteo2023}. Temperature is a rough signal for guest outdoor dining behavior and tourism activity. Warm summer days might nudge people to step out for a bite or drink, while extreme cold encourages staying indoors.
@@ -316,6 +318,7 @@ These four sources were joined on calendar date to produce a unified feature tab
 \centering
 \small
 \renewcommand{\arraystretch}{1.3}
+\resizebox{\textwidth}{!}{%
 \begin{tabular}{@{}lrrllrrrr@{}}
 \toprule
 \textbf{Date} & \textbf{Covers} & \textbf{Occ.\%} & \textbf{Season} & \textbf{Day} & \textbf{WE} & \textbf{Special} & \textbf{Temp mean} & \textbf{Temp max} \\
@@ -327,7 +330,8 @@ These four sources were joined on calendar date to produce a unified feature tab
 2025-04-27 & 149 & 31.79 & Spring & Sunday    & 1 & 0 & 12.8 & 18.8 \\
 \bottomrule
 \multicolumn{9}{@{}l}{\small WE = is\_weekend flag (1 = weekend); Temp in °C.}
-\end{tabular}
+\end{tabular}%
+}
 \renewcommand{\arraystretch}{1}
 \caption{First five rows of the unified feature table ($n = 294$).}
 \label{tab:featurehead}
@@ -338,23 +342,21 @@ These four sources were joined on calendar date to produce a unified feature tab
 \subsubsection{Exploratory Data Analysis}
 \label{sec:eda}
 
-The EDA was run before any modeling to check whether the features actually relate to cover counts in a visible way. If nothing showed up in the plots, training a classifier on these features would not have made sense.
+Before modeling anything , the data needed to show that these features actually have a relationship with the cover counts. Otherwise, training a classifier would not have made sense.
 
- Figure~\ref{fig:demand_signals} shows six panels across the 294 real observations. Occupancy and temperature both show positive associations with afternoon covers. As occupancy rises, covers tend to follow. The relationship looks roughly linear across the observed range, with no obvious plateau or cutoff point. Temperature tells a similar story but with more noise, which tracks with the OLS results where the temperature coefficient carries a larger standard error. Some of that noise is expected. Warm days and high occupancy tend to happen at the same time in summer, so the raw scatter mixes the two effects together.
+ Figure~\ref{fig:demand_signals} shows six panels across the 294 real observations. Occupancy and temperature both show positive associations with afternoon covers. When occupancy goes up, covers follow, in a roughly linear pattern. Temperature follows this same pattern with a bit more noise around it. This makes sense given what the OLS said about the standard error. The noise could be associated with the fact that warm days and high occupancy  tend to land on the same day so the scatter picks up on both at once.
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=1.1\textwidth]{figures/demand_vs_covers.png}
+    \includegraphics[width=\textwidth]{figures/demand_vs_covers.png}
     \caption{Demand signals vs actual afternoon covers.}
     \label{fig:demand_signals}
 \end{figure}
+From Figure~\ref{fig:demand_signals}, summer, June through August, is when cover counts are consistently at their highest. Winter is more interesting. Most of the season is quiet, but December breaks that pattern. Late November through early December behaves like winter, before demand picks up sharply from around the 15th through Christmas and New Year’s. This distinction directly informed the festive ramp in the simulation: the period had to be modelled separately, or its effect would have been completely ignored.
 
+Public holidays and specific dates like Christmas also show higher demand, with median covers around 60–70 above normal days. They exhibit a wider spread, reflecting the fact that not every special day is equally busy. Weekends follow the same pattern, though less pronounced, with Saturdays and Sundays running roughly 20–30 covers above weekday levels.
 
-Summer (June - August)  consistently shows the highest cover counts. Winter is generally quiet but December has a pattern of its own. Late November ramping up to mid-December follows the winter pattern. However, the second half of the month, leading up to Christmas and New Year's Eve picks back up sharply. This split within December is what motivated the festive ramp in the simulation design (Section~\ref{sec:simulation}).
-
-Hungarian public holidays and operationally significant dates are associated with higher cover counts than normal days. The median is roughly 60 -- 70 covers higher, and the spread is wider because not all special days are equally busy. Weekends show a similar pattern, but at a smaller scale. Saturdays and Sundays run about 20-30 more covers than weekdays.
-
-These patterns confirm that demand is not random. There are observable signals that can be measured in advance and incorporated into a forecasting model to help create demand-aware staffing decisions. 
+These patterns are not random. The signals are measurable, and they are available before the shift starts.
 
 
 \subsubsection{Data Partitioning}
@@ -362,12 +364,12 @@ These patterns confirm that demand is not random. There are observable signals t
 
 The dataset was split using a season-stratified approach. The last 20\% of every season's days were used for testing, leaving the other 80\% for  training. Splitting by season means both sets saw patterns across all four seasons. A naive chronological split would concentrate test data squarely in the winter and early spring, giving the model insufficient information to train on warmer summer days.
 
-The same 20\% of the data was used to evaluate all methods in this study. The OLS regression was fitted on the remaining 80\% and tested on the 20\%. The afternoon classifier, trained on 2,000 synthetic observations, was tested on the same 20\% from the real days. Keeping the test set identical across all methods means the comparisons are fair.
+The same 20\% of the data was used to evaluate everything. Ordinary Least Squares on the 80\%, tested on the 20\%. The afternoon classifier, trained on synthetic data, also tested on that same 20\% of real days. The comparison between methods would mean nothing if the tests were different.
 
 \subsection{Ordinary Least Squares Regression}
 \label{sec:ols}
 
-An ordinary least squares (OLS) regression was fitted to the real dataset to quantify the contribution of each demand signal and to provide the statistical foundation for the simulation methodology described in Section~\ref{sec:simulation}. The label is the raw afternoon cover count; the features are hotel occupancy percentage, mean daily temperature, day of week (as an ordinal integer 0--6), the binary special-day indicator, and dummy variables for summer and winter seasons (with autumn as the baseline). Spring was tested and found to be statistically similar to autumn and is discussed below.
+An Ordinary Least Squares regression was fitted to the real data. The goal was two things: put a number on how much each demand signal actually contributes, and give the simulation something statistically grounded to build on. The label is the raw afternoon cover count; the features are hotel occupancy percentage, mean daily temperature, day of week (as an ordinal integer 0--6), the binary special-day indicator, and dummy variables for summer and winter seasons (with autumn as the baseline). Spring was tested and found to be statistically similar to autumn and is discussed below.
 
 The fitted regression equation is:
 
@@ -404,16 +406,16 @@ Season: Spring        &  9.94  & 17.740 &  0.560  & 0.576 \\
 \label{tab:ols}
 \end{table}
 
-Hotel occupancy is the strongest and most precisely estimated predictor. Each percentage point increase in occupancy is associated with approximately 1.73 additional afternoon covers ($t = 5.66$, $p < 0.001$), as reported in \citet{thompson2008}. To put this in context, moving from a 30\% occupancy day to a 70\% occupancy day corresponds to approximately 69 additional predicted covers. This swing is equivalent to roughly a Medium-to-High tier boundary shift.
+Hotel occupancy is the strongest and most precisely estimated predictor. Each percentage point increase in occupancy is associated with approximately 1.73 additional afternoon covers ($t = 5.66$, $p < 0.001$). Moving from a 30\% occupancy day to a 70\% occupancy day predicts roughly 69 more covers, which in practice is the difference between a Medium and High demand day.
 
-Temperature, too,  has a significant effect. Each degree Celsius of mean daily temperature adds approximately 4.46 covers ($t = 3.77$, $p < 0.001$). For context, a 15°C temperature difference corresponds to approximately 67 additional predicted covers. This in practice is the difference between a warm summer day at 25°C versus a 10°C day in autumn. Temperature is not merely a stand-in for seasons - season dummies already cover that. It carries additional predictive information within seasons. A warm day in October will likely generate more covers than its colder counterpart, even after taking into account autumn classification.
+Temperature, too,  has a significant effect. Each degree Celsius of mean daily temperature predicts roughly 4.46 more covers ($t = 3.77$, $p < 0.001$). A 15°C temperature difference would predict 67 additional predicted covers. In practice, this is the difference between a warm summer day at 25°C versus a 10°C day in autumn. Temperature carries additional predictive information within seasons. A warm day in October will likely generate more covers than its colder counterpart, despite both days being in autumn.
 
 
 The day-of-the-week coefficient of 7.04 covers per unit ($t = 2.71$, $p = 0.007$) indicates that each successive day of the week is associated with approximately 7 additional afternoon covers, on average. Moving from Monday (coded 0) to Saturday (coded 5) corresponds to a 35-cover increase. While small, it is still meaningful. In a real-world scenario, for instance, 35 additional covers would require one additional server for the duration of the service.
 
 The special-day coefficient of 70.67 covers ($t = 3.07$, $p = 0.002$) is the largest in the model. Hungarian public holidays and the four additional special dates are not equally busy — the 70.67 figure is an average across all of them. The wide standard error (23.01) shows this clearly: some occasions run well above that, others below.
 
-The winter coefficient of 85.73 (\(t = 5.13\), \(p < 0.001\)) is the most surprising result. Winter months are predicted to generate more covers than autumn, even after accounting for occupancy and temperature. This effect is largely driven by December, when the festive period significantly increases the average number of covers. February shows a slight recovery around Valentine's Day, an effect already captured by the special-day flag. January itself is typically quieter.
+The winter coefficient of 85.73 (\(t = 5.13\), \(p < 0.001\)) is the most surprising result. Winter months are predicted to generate more covers than autumn, even after accounting for occupancy and temperature. The main driver for this is December, which behaves differently from other winter months, ramping up to the festive season. February shows a slight recovery around Valentine's Day, an effect already captured by the special-day flag. January itself is typically quieter.
 
 Spring days are statistically similar to autumn days ($p = 0.576$). Once occupancy and temperature are accounted for, there is no remaining seasonal effect that is specific to spring alone. This null finding suggests that the seasonal demand effect in spring is fully explained away by the occupancy and temperature signals. In spring, both occupancy and temperature are rising, and these rising signals explain the observed demand recovery without a season-specific effect. Spring was therefore dropped from the final model.
 
@@ -432,13 +434,12 @@ The OLS is therefore an appropriate estimator for this data. The residuals can b
 \subsection{Simulation Design}
 \label{sec:simulation}
 
-With only 294 real covers data, training a classifier directly on the real data is challenging. A three-class classifier with six features would have approximately 98 observations per class, which may be insufficient for reliable model training \citep{lu2023}. To address this limitation, the simulation generates 2,000 synthetic training data points based on the real data and validates their distribution against the real data before training the classifier.
-
-The simulation was developed through five design stages, each addressing a limitation identified in the preceding stage. This progression is important because a model is only as good as the data it was trained on.
+Training the classifier directly on real data was challenging because the data is lean. With 294 real cover days, a three-class classifier with six features would have approximately 98 covers data per class. This is insufficient for reliable model training \citep{lu2023}. To address this limitation, the simulation generates 2,000 synthetic training data points based on the real data and validates their distribution against the real data before training the classifier. The simulation was developed through five design stages:
 
 \subsubsection{Stage 1  --  Domain-Knowledge Parameters}
 
-The initial simulation used hardcoded seasonal base rates derived from personal operational experience. For example, summer was assigned a base cover rate of 0.75. These captured intuition based off of experience but had no real data backing. The fundamental problem was that parameters were invented, used in simulation, and partially validated against real data. The right approach is to derive parameters from real data first and use them in simulation.
+The initial simulation used hardcoded seasonal base rates from personal restaurant experience. Summer was assigned a base cover rate of 0.75, for instance. These were intuition, not data. The problem is not that intuition is wrong. It is that when you validate a simulation against the same data your intuition came from, you cannot trust what the validation is telling you. Parameters needed to come from the data first.
+
 
 \subsubsection{Stage 2  --  Statistically Derived Parameters}
 
@@ -473,14 +474,15 @@ December  & 30 & \textit{ramp} & Empirical linear ramp (Stage 4) \\
 
 \end{table}
 
-April and May presented a specific challenge. With only 8 and 7 observations respectively, the 95\% confidence interval on each individual mean spans approximately $\pm 0.20$ -- as wide as the estimate itself. Both months were replaced with the spring season mean (0.43), computed across all 44 observations from March, April, and May combined. This is a known limitation meaning that if April cover rates differ systematically from the spring mean, the simulation will carry a small bias for those months.
+April and May presented a specific challenge. With only 8 and 7 observations respectively, the 95\% confidence interval on each individual mean spans approximately $\pm 0.20$ -- as wide as the estimate itself. Both months were replaced with the spring season mean (0.43), computed across all 44 observations from March, April, and May combined. If April or May behave differently from the spring average, that difference will not show up in the simulation, and that is a limitation worth naming.
 
 \subsubsection{Stage 3  --  Visual Validation: Seasonal Alignment}
 
-  Both series were plotted on the same seasonal window, that is, June to April,  using 
+  Both series were plotted on the same seasonal window, that is, June to April, using 
   rolling means, so the shapes could be compared directly.
 
-  The match is strong through most of the year. The summer plateau shows up clearly in both. The autumn drop happens at roughly the same pace, and the January dip lands at about the same level. December had the problem in both graphs. The real data shows a sharp festive recovery that the simulated version, using a flat monthly mean, only reached about 65–70\% of. That gap motivated Stage 4.
+The match is strong through most of the year. Summer plateau, autumn drop, January dip — all land in roughly the right place. December is where it falls apart. The real data has a sharp festive recovery that the simulation only captured about 65–70\% of.  This is mostly because a flat monthly mean cannot reproduce a mid-month spike. That gap is what motivated Stage 4.
+
 
 \begin{figure}[H]
     \centering
@@ -492,7 +494,7 @@ April and May presented a specific challenge. With only 8 and 7 observations res
 
 \subsubsection{Stage 4  --  December Festive Ramp}
 
-Real covers data reveals that the first two weeks of December are relatively quiet, with a mean cover rate of 0.57, while the final two weeks climb sharply to 0.77 as the festive season takes hold. This is a difference of 0.20 cover-rate units. Applying a single flat mean across the entire month would significantly underestimate the late-December demand. To account for this, December is modeled as a linear ramp between its two empirically observed halves:
+The first two weeks of December are relatively quiet, with a mean cover rate of 0.57. This climbs sharply to 0.77 as the festive season takes hold. Applying a flat rate across the entire month significantly underestimates the 0.20 cover-rate difference. To account for this, December is modeled as a linear ramp between its two empirically observed halves:
 
 
 \begin{equation}
@@ -547,15 +549,15 @@ The only assumption in the simulation is \texttt{has\_local\_event} (\(+0.10\)).
 \subsection{Synthetic Data Generation}
 \label{sec:synth}
 
-The synthetic data generation pipeline produces 2,000 training data points. 2,000 data points yield approximately 650--700 observations per class which is sufficient for model training. 2,000 also represents approximately a 6.8$\times$ extrapolation of the real data. Higher amplification risks stretching the regression's domain into regions not well represented in the real data. The synthetic data  points are generated in the following steps:
+The synthetic data generation pipeline produces 2,000 training points. This is roughly 650–700 per class, which is enough for the classifier. 2,000 is also about 6.8$\times$ the real dataset. Going much higher than that risks the simulation generating feature combinations that never actually appeared in the real data. The points are generated in the following steps:
 
 \paragraph{Step 1: Row sampling:} Feature vectors are generated by sampling entire rows, with replacement, from the 294 real observations. Sampling complete rows preserves the relationships between features as they occurred in the original data. Sampling individual columns independently could produce feature combinations that were never observed in reality.
 
-\paragraph{Step 2: OLS prediction:} Each sampled feature vector is passed through the fitted OLS regression (Equation~\ref{eq:ols}) to obtain a predicted cover count.
+\paragraph{Step 2: OLS prediction:} Each sampled row goes through the fitted OLS regression (Equation~\ref{eq:ols}) to get a predicted cover count.
 
 \paragraph{Step 3: Residual injection:} A residual is sampled independently from the 294 real OLS residuals and added to the predicted cover count. This independence is intentional. Pairing a feature vector with the residual from its original observation would simply reproduce the observed cover count, rather than generate a new synthetic observation.
 
-\paragraph{Step 4: Clipping and tier labelling:} Cover counts are clipped at zero to avoid negative values. They are then assigned to one of three demand tiers using tertile thresholds from the real data, as in Table~\ref{tab:tier_counts}.
+\paragraph{Step 4: Clipping and tier labelling:} Cover counts are clipped at zero to avoid negative values. What is left gets assigned to one of three demand tiers using the tertile thresholds from the real data, as in Table~\ref{tab:tier_counts}.
 
 \begin{table}[H]
   \centering
@@ -615,9 +617,9 @@ The synthetic data generation pipeline produces 2,000 training data points. 2,00
 \subsubsection{Alternative Approaches Considered}
 
 
-Independent column sampling was considered initially but rejected because it destroys the correlations between features present in the real data. For example, hotel occupancy and summer season are positively correlated (\(r \approx 0.44\)), reflecting the influence of Budapest's tourism season on both. Sampling these features independently would generate unrealistic combinations, such as high occupancy during winter, at frequencies not observed in the original data. Since the OLS regression was fitted on the real joint distribution of the features, its predictions for these artificial combinations could be unreliable. This approach was therefore rejected in favour of sampling complete rows.
+Independent column sampling was considered first and dropped. Occupancy and summer season are positively correlated ($r \approx 0.44$). Sample the columns independently and you get high occupancy in winter at rates that never actually appear in the real data. The OLS regression was fitted on the real joint distribution, so feeding it combinations that never existed makes its predictions unreliable.
 
-The second alternative was \textit{Gaussian parametric simulation}. Here, a multivariate Gaussian distribution is fitted to the feature space and synthetic feature vectors are sampled from it before being passed through the OLS regression. Although this approach preserves linear correlations, it cannot adequately capture non-linear relationships between features. For example, the interaction between occupancy and season is not well represented by a Gaussian distribution, particularly because season is categorical and occupancy is right-skewed. Furthermore, Gaussian sampling can generate values outside the observed range, such as occupancy above 100\%, non-integer day-of-week values, and non-binary special-day indicators. Clipping and rounding these values after sampling would introduce additional distortions. 
+The second option was Gaussian parametric simulation: fit a multivariate Gaussian to the feature space, sample from it, pass through OLS. It preserves linear correlations, which is useful. But season is categorical and occupancy is right-skewed, and a Gaussian does not handle either of those well. Row sampling was the cleaner solution.
 
 
 Row sampling avoids all this. Every synthetic feature vector is a row in the real data without any extra steps in between.
@@ -626,7 +628,9 @@ Row sampling avoids all this. Every synthetic feature vector is a row in the rea
 
 The Kolmogorov--Smirnov (KS) test statistic is defined as:
 
-$$D = \sup_x |F_1(x) - F_2(x)|$$
+\begin{equation}
+D = \sup_x |F_1(x) - F_2(x)|
+\end{equation}
 
 where $F_1$ and $F_2$ are the empirical Cumulative Distribution Functions of the real and synthetic cover distributions.
 
@@ -675,7 +679,7 @@ Given a feature vector describing the demand signals on a particular day, the mo
 
 Classification works better than regression here for a few reasons. First, tier labels are harder to corrupt through noise. A Saturday that is genuinely busy is unlikely to be labeled 'Low' from random fluctuation alone, as long as the quantile boundaries are set sensibly. And the tier system fits into what was already built, almost naturally. The scheduler already expects a \texttt{role\_count} per role per shift. The \texttt{StaffingService} also maps tiers to those counts through a mutable configuration table. No extra translation layer sits between the model output and the business logic. The three tier output also makes the system easier to use in practice. For instance, if the model predicts high but the manager knows that a large group canceled that morning, the override is very obvious. There is no need to interpret a regression coefficient as would have been in regression.
 
-Tier boundaries were derived from tertile thresholds on the 294 real cover observations. Low is used for days with up to 182 afternoon covers, Medium for 182–305, and High for anything above 305. Tertiles were chosen to keep class sizes roughly even — 97 Low, 101 Medium, 96 High — since imbalanced training data tends to bias classifiers toward the majority class.
+Tier boundaries were derived from tertile thresholds on the 294 real cover observations. Low is used for days with up to 182 afternoon covers, Medium for 182–305, and High for anything above 305. Tertiles were chosen to keep class sizes roughly even — 97 Low, 101 Medium, 96 High — since imbalanced training data tends to bias classifiers toward the majority class \citep{he2009}.
 
 Morning staffing is handled differently. Rather than a trained classifier, a direct occupancy threshold rule was applied. That is, below 35\% occupancy maps to Low, 36–65\% to Medium, and above 65\% to High. This came out of the EDA and OLS regression, where hotel occupancy consistently emerged as the variable doing most of the work. Breakfast demand is almost entirely tied to how many guests are in the building that night. A more complex model did not seem warranted when one variable already explained most of what was happening.
 
@@ -771,15 +775,19 @@ Logistic Regression is selected as the production model deployed in the integrat
 \section{Scheduler Design and Evolution}
 \label{sec:scheduler}
 
-The SlotMeIn engine went through two versions. A greedy implementation first, then later, a CP-SAT engine. This section covers the formal structure of the problem and how the ML model ties into the final implementation.
+The SlotMeIn engine went through two versions: a greedy implementation first, then a CP-SAT engine. This section covers the formal structure of the problem and how the ML model ties into the final implementation.
 
 \subsection{The Scheduling Problem}
 
 For an assignment to be valid, it must satisfy hard constraints and maximize a weighted objective function. Formally:
 
-$$f: E \times S \rightarrow \{0, 1\}, \quad f(e, s) = x_{e,s}$$
+\begin{equation*}
+f: E \times S \rightarrow \{0, 1\}, \quad f(e, s) = x_{e,s}
+\end{equation*}
 
-  $$x_{e,s} = \begin{cases} 1 & \text{if employee } e \text{ is assigned to shift } s \\ 0 & \text{otherwise} \end{cases}$$
+\begin{equation*}
+x_{e,s} = \begin{cases} 1 & \text{if employee } e \text{ is assigned to shift } s \\ 0 & \text{otherwise} \end{cases}
+\end{equation*}
 
 The task is to find an assignment x that satisfies all hard constraints and maximizes the objective function.
 
@@ -854,7 +862,7 @@ Lastly, before the integration of the ML component, the staffing levels of the s
 \label{fig:greedy_schedules}
 \end{figure}
 
-Figure~\ref{fig:greedy_schedules} illustrates this limitation concretely. Despite the given occupancy in figure ~\ref{fig:occupancy} being injected to the scheduler, it conveniently fails to use these signals. The schedule then falls short of the actual needs of the given days. Some days like Sunday where occupancy (just one demand signal) is low get proper staffing but this is only by chance.
+Figure~\ref{fig:greedy_schedules} illustrates this limitation concretely. Despite the given occupancy in Figure~\ref{fig:occupancy} being injected to the scheduler, it conspicuously fails to use these signals. The schedule then falls short of the actual needs of the given days. Some days like Sunday where occupancy (just one demand signal) is low get proper staffing but this is only by chance.
 
 \subsection{The CP-SAT Scheduler}
 
@@ -897,7 +905,7 @@ The overwork threshold is set at $\Theta = 1.15 \times H_{\text{contracted}}$. H
 
 \subsubsection{ML Integration: Occupancy-Aware Scheduling}
 
-With the CP-SAT engine in place, ML integration is relatively straight forward at this point. The flow chart below shows this integration clearly:
+With the CP-SAT engine in place, ML integration is relatively straightforward at this point. The flow chart below shows this integration clearly:
 
  \begin{figure}[H]
   \centering
@@ -932,7 +940,7 @@ With the CP-SAT engine in place, ML integration is relatively straight forward a
   \label{fig:ml_csat_pipeline}
   \end{figure}
 
-Now, with the ML-powered ability of the scheduler, given the same occupancy as in ~\ref{fig:occupancy}, the schedule produced is as below:
+Now, with the ML-powered ability of the scheduler, given the same occupancy as in Figure~\ref{fig:occupancy}, the schedule produced is as below:
 
 
 \begin{figure}[H]
@@ -968,7 +976,7 @@ The following is an illustrative example using a prospective date beyond the obs
 
  \begin{figure}[H]
      \centering
-     \includegraphics[width=1.05\textwidth]{figures/ml2_18.png}
+     \includegraphics[width=\textwidth]{figures/ml2_18.png}
      \caption{ML schedule for the week of 18th October, 2026}
      \label{fig:ml_18}
  \end{figure}
@@ -976,7 +984,7 @@ The following is an illustrative example using a prospective date beyond the obs
 
  \begin{figure}[H]
      \centering
-     \includegraphics[width=1.05\textwidth]{figures/greedy_18.png}
+     \includegraphics[width=\textwidth]{figures/greedy_18.png}
      \caption{Greedy schedule for the week of 18th October, 2026}
      \label{fig:greedy_18}
  \end{figure}
@@ -1006,7 +1014,7 @@ Table~\ref{tab:summary} shows the key performance metrics for the demand tier mo
   \label{tab:summary}
   \end{table}
 
-The afternoon test accuracy of 62.5\% is the substantive empirical result. The model has learned to predict which of the three demand tiers is needed for restaurant service. Static rules cannot perform this task since it requires reasoning over the demand signals. While this accuracy is good, it is constrained to the demand features fed into it. The literature supports that addition of features that drive demand would in fact drive this figure higher \citep{heliyon2023}.
+The afternoon test accuracy of 62.5\% is the substantive empirical result. The model has learned to predict which of the three demand tiers is needed for restaurant service. Static rules cannot perform this task since it requires reasoning over the demand signals. While this accuracy is good, it is constrained to the demand features fed into it. The literature supports that the addition of features that drive demand would in fact drive this figure higher \citep{heliyon2023}.
 
 
 
@@ -1047,7 +1055,7 @@ There are five distinct stages in which SlotMeIn connects raw operational data t
 
 \paragraph{Unvalidated objective weight ratios:} The CP-SAT objective function weights are grounded in operational reasoning, but their ratios have not been validated through manager preference elicitation or sensitivity analysis.
 
-\paragraph{Coverage versus equity trade-off:} The CP-SAT objective function rewards filling shift slots and penalises over/underwork, but does not explicitly penalise variance in shifts-per-week across eligible employees. On low-demand weeks where fewer shifts are available than there are staff members, the solver may concentrate assignments on the most available full-time employees while part-time staff receive no shifts. Addressing this would require a soft fairness penalty that penalises variance in weekly shift counts. Alternatively, a two-phase solve could constrain each employee to at most one shift-day in the first phase before filling remaining gaps in the second.
+\paragraph{Coverage versus equity trade-off:} The CP-SAT objective function rewards filling shift slots and penalizes over/underwork, but does not explicitly penalize variance in shifts-per-week across eligible employees. On low-demand weeks where fewer shifts are available than there are staff members, the solver may concentrate assignments on the most available full-time employees while part-time staff receive no shifts. Addressing this would require a soft fairness penalty that penalizes variance in weekly shift counts. Alternatively, a two-phase solve could constrain each employee to at most one shift-day in the first phase before filling remaining gaps in the second.
 \newpage
 % =============================================================================
 % SECTION 7 — CONCLUSION
@@ -1064,13 +1072,13 @@ hotel occupancy ($p < 0.001$), mean temperature ($p < 0.001$), day of the week (
 
 Architecturally, the study presents a pipeline that takes raw operational data and transforms it to a demand-aware schedule. The pipeline consists of three connected stages. First, simulation, which produces empirically grounded training data. Then, a classification stage which applies Logistic Regression trained on synthetic data. And finally, a scheduling stage that uses CP-SAT to enforce hard constraints within a weighted objective function. The hard constraints are derived from the EU Working Time Directive and the Hungarian Labour Code. The scheduler consumes the ML tier prediction as its demand input.
 
-Managers of a F\&B establishment are the obvious direct beneficiaries of SlotMeIn. A system that tells you ahead of time that Tuesday next week is going to be busy or not removes the cognitive burden that currently sits squarely on the memory and experience of one person.  But the staff benefit too.  Overstaffing sends people home earlier than expected, which means fewer hours for them.  While this might not be the worst thing possible, fewer hours also mean less money lands in your account at the end of the month. Understaffing means a service becomes extremely overwhelming. One of the main reasons employees leave hotels is because of the quality of the work environment. Constantly being either overstaffed or understaffed quickly degrades the work environment and causes a high turnover rate. High turnover is also expensive for a hotel. Every replacement costs time and training \citep{tracey2008}. A schedule that distributes hours as fairly as possible and matches staffing to actual demand makes the job more sustainable for the people doing it, which in turn reduces turnover \citep{pham2022, karatepe2020}.
+Managers of a F\&B establishment are the obvious ones who benefit from this engine. A system that tells you ahead of time that Tuesday next week is going to be busy or not removes the cognitive burden that currently sits squarely on the memory and experience of one person.  But the staff benefit too.  Overstaffing sends people home earlier than expected, which means fewer hours for them.  While this might not be the worst thing possible, fewer hours also mean less money lands in your account at the end of the month. Understaffing means a service becomes extremely overwhelming. One of the main reasons employees leave hotels is because of the quality of the work environment. Constantly being either overstaffed or understaffed quickly degrades the work environment and causes a high turnover rate. High turnover is also expensive for a hotel. Every replacement costs time and training \citep{tracey2008}. A schedule that distributes hours as fairly as possible and matches staffing to actual demand also makes the team more stable, which in turn runs down turnover \citep{pham2022, karatepe2020}.
 
 While not primary, the move from greedy to CP-SAT is also a big contribution. It demonstrates the importance of the backtracking ability of the CP-SAT solver in undoing partial assignments which would make the final schedule suboptimal. (Figures~\ref{fig:ml_18} and \ref{fig:greedy_18}) concretely show that ML integration produces schedules that adjust to demand where static rules were not able to make the same adjustment.
 
-A 62.5\% accuracy  for the model does not sound impressive in isolation. However, the baseline, which is the hotel occupancy alone, performs at 44.6\%. That means that adding demand signals improved the accuracy by about 18\%. This means that on roughly 6 out of 10 days, the manager receives the correct tier and schedules the correct number of employees per role even before the shift starts. The remaining days are not random failures. We can attribute them to the scarcity of training and testing data, and genuinely hard to predict days like when a large group cancels last minute, or when a large group comes to the hotel last minute. 
+A 62.5\% accuracy  for the model does not sound impressive in isolation. However, the baseline, which is the hotel occupancy alone, performs at 44.6\%. That means that adding demand signals improved the accuracy by about 18\%. This means that on roughly 6 out of 10 days, the manager receives the correct tier and schedules the correct number of employees per role even before the shift starts. The remaining days are not random failures. These can be attributed to the scarcity of training and testing data, and genuinely hard to predict days like when a large group cancels last minute, or when a large group comes to the hotel last minute. 
 
-The data scarcity problem is not unique to this restaurant. Most small hospitality businesses will never accumulate enough operational data to train a classifier directly. The methodology used here --- fitting OLS to the available data, deriving simulation parameters from the regression, generating synthetic training data, and validating it with a KS test --- is transferable to any similar context. Arguably, these statistical methods exist to help in similar situations. All a restaurant needs is 200 days of cover data and a property management system to build a pipeline of their own.  The specific parameters may differ but the underlying approach will not.
+The data scarcity problem is not unique to this restaurant. Most small hospitality businesses will never accumulate enough operational data to train a classifier directly. The methodology used here --- fitting OLS to the available data, deriving simulation parameters from the regression, generating synthetic training data, and validating it with a KS test --- is transferable to any similar context. Arguably, these statistical methods exist to help in similar situations. All a restaurant needs is 200 days of cover data and a property management system to build a pipeline of its own.  The specific parameters may differ but the underlying approach will not.
 
 
 %\section{Future Work}
@@ -1080,12 +1088,11 @@ The most impactful extension of this work would be eliminating the need for simu
 
 Furthermore, an interface that allows employees to make requests for their leave days would also be useful. Currently, a manager would be required to manually input these requests into the system. This work scales linearly with headcount and becomes burdensome quickly. On the same note, integrating a property management system with SlotMeIn would further automate the generation process. This would eliminate the need for a manager to manually input the occupancy rates per shift per day. Consequently, the entire pipeline would then be automatic.
 
-It would also be impactful to do a sensitivity analysis on the objective weights. This would provide the empirical grounding currently missing from the calibration of the objective weights.
-This could involve varying each weight by $\pm 20\%$ and comparing the resulting schedules against manager preference judgements. Involving experts in the field for this specific piece of work would substantially strengthen the defensibility of the objective formulation.
+The objective weights are currently set by reasoning, not data. A sensitivity analysis would give that calibration an empirical footing. This can be done by varying each weight by $\pm 20\%$ and comparing the resulting schedules against manager preferences. Getting experts in the field involved here would also make the formulation easier to defend.
 
 Extending the feature set would be the most useful improvement to the afternoon classifier. There are several features not available for this study, yet they influence demand. These include: local events \citep{lasek2016}, online reviews \citep{wu2024}, city-level tourism arrivals \citep{sun2019}, and competitor spatial density \citep{liu2025}. Each of these is supported by peer-reviewed evidence of improving restaurant or hotel demand forecast accuracy. Incorporating them in a future version would be expected to drive afternoon classification accuracy substantially beyond the current 62.5\%.
 
-Finally, the morning tier thresholds are derived from domain reasoning, not observed cover data. They have not been validated against actual morning revenue or cover records. The local event flag is also an assumption with no event log to ground it. While these are not fatal limitations, they are honest ones. A future version of SlotMeIn that validates morning boundaries and incorporates a real event calendar would be much stronger. That is work left to do.
+Finally, the morning tier thresholds are derived from domain reasoning, not observed cover data. They have not been validated against actual morning revenue or cover records. The local event flag is also an assumption with no event log to ground it. These are real limitations: not fatal, but worth naming. A future version that validates morning boundaries and incorporates a real event calendar would be much stronger. 
 \newpage
 
 % =============================================================================
@@ -1282,6 +1289,12 @@ Tracey, J.B. and Hinkin, T.R. (2008).
 \newblock \textit{Cornell Hospitality Quarterly}, 49(1):12--27.
 \newblock DOI: 10.1177/0010880407310191.
 
+\bibitem[He and Garcia(2009)]{he2009}
+He, H. and Garcia, E.A. (2009).
+\newblock Learning from imbalanced data.
+\newblock \textit{IEEE Transactions on Knowledge and Data Engineering}, 21(9):1263--1284.
+\newblock DOI: 10.1109/TKDE.2008.239.
+
 \end{thebibliography}
 
 % =============================================================================
@@ -1291,9 +1304,98 @@ Tracey, J.B. and Hinkin, T.R. (2008).
 \section*{Appendix}
 \appendix
 
-All simulation parameters were derived from 294 real afternoon cover observations spanning January 2025 to April 2026. The derivation procedure is fully reproducible by re-running \texttt{notebooks/demand\_model\.ipynb}. The single exception -- the \texttt{has\_local\_event} contribution of $+0.10$ -- is explicitly documented as an assumption, not a data-derived parameter, for the reasons stated in Section~\ref{sec:simulation}.
+All simulation parameters were derived from 294 real afternoon cover observations spanning January 2025 to April 2026. The derivation procedure is fully reproducible by re-running \texttt{notebooks/demand\_model.ipynb}. The single exception -- the \texttt{has\_local\_event} contribution of $+0.10$ -- is explicitly documented as an assumption, not a data-derived parameter, for the reasons stated in Section~\ref{sec:simulation}.
+
+\bigskip
+The full source code for SlotMeIn is publicly available at: \url{https://github.com/Imani-Maua/SlotMeIn}. A live demo of the application is accessible at \url{https://slotmein.vercel.app}, where a public test account is available for evaluation purposes. Login credentials for the demo account are provided in the README file of the repository.
+
+\subsection*{A.1 Demand Tier Predictor}
+
+The listing below shows \texttt{predict_tier} in full. It takes a date, an occupancy reading, and a shift period, and returns a demand tier. The scheduler calls it once per shift slot.
+
+\begin{lstlisting}[language=Python, caption={Demand tier prediction (\texttt{app/core/schedule/ml/tier\_predictor.py})}]
+_SEASONAL_TEMP = {"Spring": 12.0, "Summer": 22.0, "Autumn": 10.0, "Winter": -2.0}
+
+def predict_tier(dt: date, occupancy_pct: float, shift: str,
+                 temp_mean: float | None = None) -> str:
+    season = _season(dt.month)
+    if temp_mean is None:
+        temp_mean = _SEASONAL_TEMP[season]
+
+    row = {
+        "occupancy_%":    occupancy_pct * 100,
+        "day_of_week":    dt.weekday(),
+        "is_weekend":     int(dt.weekday() >= 5),
+        "is_special_day": int((dt.month, dt.day) in _SPECIAL_DAYS),
+        "temp_mean":      temp_mean,
+        "season_Spring":  int(season == "Spring"),
+        "season_Summer":  int(season == "Summer"),
+        "season_Winter":  int(season == "Winter"),
+    }
+
+    arts = model_artifacts[shift]
+    model_input = pd.DataFrame([row])[arts["features"]]
+    raw = arts["model"].predict(model_input)[0]
+    label = raw if isinstance(raw, str) else \
+            model_artifacts["encoder"].inverse_transform([raw])[0]
+    return normalize_staffing[label]
+\end{lstlisting}
+
+\subsection*{A.2 CP-SAT Scheduler: Constraints and Objective}
+
+The following listings show the five hard constraints and the weighted objective function of the CP-SAT scheduler. The full class, including variable construction and solution extraction, is available in the repository at \texttt{app/core/schedule/allocator/service.py}.
+
+\begin{lstlisting}[language=Python, caption={CP-SAT hard constraints (abridged)}]
+# Constraint 1: each slot filled by at most one talent
+for sid in shift_ids:
+    for slot in range(shift.role_count):
+        slot_vars = [slot_assignments[tid][sid][slot]
+                     for tid in talent_ids
+                     if slot in slot_assignments[tid].get(sid, {})]
+        if slot_vars:
+            model.add(sum(slot_vars) <= 1)
+
+# Constraint 2: each talent fills at most one slot per shift
+for tid in talent_ids:
+    for sid in shift_ids:
+        talent_slots = [slot_assignments[tid][sid][slot]
+                        for slot in range(shift.role_count)
+                        if slot in slot_assignments[tid].get(sid, {})]
+        if len(talent_slots) > 1:
+            model.add(sum(talent_slots) <= 1)
+
+# Constraint 3: at most one shift per talent per day
+for tid in talent_ids:
+    for _, date_sids in shifts_by_date.items():
+        date_vars = [is_assigned[tid][sid] for sid in date_sids
+                     if sid in is_assigned.get(tid, {})]
+        if date_vars:
+            model.add(sum(date_vars) <= 1)
+
+# Constraint 4: minimum 11-hour rest between consecutive days
+if rest < MIN_REST_HOURS:
+    model.add(is_assigned[tid][sid] + is_assigned[tid][prev_sid] <= 1)
+
+# Constraint 5: maximum 6 consecutive days worked
+model.add(sum(window_solver_vars) <= MAX_CONSECUTIVE_DAYS - fixed_days_worked)
+\end{lstlisting}
+
+\begin{lstlisting}[language=Python, caption={CP-SAT weighted objective function}]
+FILL_WEIGHT            = 200   # reward per filled slot
+CONSTRAINED_FILL_BONUS =  50   # bonus for filling constrained talent slots
+UNDERWORK_PENALTY      =  80   # penalty per centihour below contracted hours
+MILD_OVERWORK_PENALTY  =  20   # penalty per centihour in 0-15% overwork band
+STEEP_OVERWORK_PENALTY = 100   # penalty per centihour above 115% of contract
+
+model.maximize(
+    FILL_WEIGHT            * sum(fill_terms)
+    + CONSTRAINED_FILL_BONUS * sum(constrained_bonus_terms)
+    - sum(penalty_terms)   # underwork + mild overwork + steep overwork
+)
+\end{lstlisting}
 
 \newpage
+
 \section*{Declaration on the Use of Artificial Intelligence Tools}
 \addcontentsline{toc}{section}{Declaration on the Use of Artificial Intelligence Tools}
 
@@ -1306,13 +1408,13 @@ I hereby declare that during the preparation of my thesis I have used the follow
 \noindent$\boxtimes$ I used artificial intelligence-based tools during the preparation of my thesis as follows:
 
 \bigskip
-\noindent\textbf{Name and version of the AI tool:} Claude Code (claude-sonnet-4-6), Anthropic
+\noindent\textbf{Name and version of the AI tool:} Claude, Grammarly
 
 \bigskip
 \noindent\textbf{Exactly how it was used:}
 \begin{itemize}
     \item Language correction, stylistic refinement, and text paraphrasing
-    \item Explanation and debugging of program code
+    \item Implementation and debugging of program code
     \item Writing out reasoning and commentary for notebook sections
     \item Collecting ideas for literature search
 \end{itemize}

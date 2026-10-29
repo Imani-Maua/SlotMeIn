@@ -11,12 +11,12 @@ from app.core.schedule.schema import (
     inputDate, ScheduleOut, AssignmentOut, AssignmentUpdate,
     AssignmentIn, ScheduleCreate, StatusUpdate,
 )
-from app.core.schedule.config_store import SchedulerConfig, SchedulerConfigStore
+from app.core.schedule.config_store import SchedulerConfig
 from app.core.schedule.repo import ScheduleRepository
 from app.database.models import Schedule
 from app.authentication.utils.auth_utils import get_current_user
 from app.redis.client import get_redis
-from app.core.schedule.events import ScheduleJobQueue, ScheduleEvent
+from app.core.schedule.events import ScheduleEvent
 from app.redis.result_store import JobResultStore
 import redis
 
@@ -72,10 +72,20 @@ async def generate_schedule(
     start_date: Annotated[inputDate, Body()],
     redis_client: Annotated[redis.Redis, Depends(get_redis)],
 ):
-    queue = ScheduleJobQueue(redis_client)
+    from app.core.schedule.worker import process_job
+    from app.core.schedule.config_store import SchedulerConfigStore
+    from app.redis.event_publisher import EventPublisher
+    import uuid
+
+    job_id = str(uuid.uuid4())
     store = JobResultStore(redis_client)
-    job_id = queue.publish(str(start_date.start_date))
+    publisher = EventPublisher(redis_client)
+    config = SchedulerConfigStore(redis_client).get()
+
     store.set_pending(job_id)
+    await asyncio.to_thread(
+        process_job, job_id, str(start_date.start_date), store, publisher, config
+    )
     return {"job_id": job_id, "status": "pending"}
 
 
