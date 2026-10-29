@@ -12,6 +12,7 @@ from app.core.schedule.service import SchedulingService
 from app.core.schedule.repo import ScheduleRepository
 from app.core.schedule.schema import ScheduleCreate, AssignmentBase
 from app.core.schedule.config_store import SchedulerConfig
+from app.core.schedule.allocator.entities import weekRange
 
 
 def _user_facing_error(e: Exception) -> str:
@@ -48,7 +49,8 @@ def process_job(job_id: str, start_date_str: str, store: JobResultStore, publish
 
     cfg = config or SchedulerConfig()
     start_date = date.fromisoformat(start_date_str)
-    daily_occupancy = _build_occupancy_lookup(start_date, cfg) or None
+    week_start = weekRange(start_date=start_date).get_week()[0]
+    daily_occupancy = _build_occupancy_lookup(week_start, cfg) or None
 
     db = SessionLocal()
     try:
